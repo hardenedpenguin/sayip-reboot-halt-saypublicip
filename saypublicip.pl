@@ -10,7 +10,7 @@ use strict;
 use warnings;
 
 # Constants
-my $IP_URL = 'http://myip.hamvoip.org/';
+my $IP_URL = 'https://api.ipify.org';  # Updated URL to fetch public IP address
 my $AUDIO_PATH = '/etc/asterisk/local/public-ip-address';
 my $SPEAK_SCRIPT = '/etc/asterisk/local/speaktext.sh';
 
