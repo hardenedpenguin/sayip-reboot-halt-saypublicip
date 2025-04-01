@@ -1,6 +1,9 @@
 #!/usr/bin/perl
 
 # reboot.pl - A script to notify via voice and reboot the system
+# This script plays a voice message using Asterisk and then reboots the system.
+#
+# Copyright (c) 2025 Jory A. Pratt, W5GLE <geekypenguin@gmail.com>
 
 use strict;
 use warnings;

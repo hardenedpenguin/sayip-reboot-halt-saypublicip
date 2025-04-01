@@ -1,6 +1,9 @@
 #!/usr/bin/perl
 
 # halt.pl - A script to notify via voice and halt the system
+# This script plays a voice message using Asterisk and then halts the system.
+#
+# Copyright (c) 2025 Jory A. Pratt, W5GLE <geekypenguin@gmail.com>
 
 use strict;
 use warnings;
