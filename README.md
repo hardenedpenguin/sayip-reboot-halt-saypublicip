@@ -1,40 +1,50 @@
-![sayiplogo Logo](https://github.com/KD5FMU/SayIP-for-ASL3/blob/main/sayip.jpg)
+![SayIP Logo](https://github.com/KD5FMU/SayIP-for-ASL3/blob/main/sayip.jpg)
 
-# SayIP-for-ASL3
-Here is an ASL3 Script to Speak the IP at BootUp
+# SayIP for ASL3
 
+This is a script for AllStarLink V3 nodes that speaks the node’s IP address at boot. It can announce the **local** or **public** IP address and includes features to **halt** or **reboot** the node using DTMF commands.
 
-AllStarLink V3 AllStar Node to speak it's IP address. It will speak the Local IP or Public IP address. It will also reboot or halt your node with the correct DTMF Command. 
-```
-cd 
-```
-Now lets down the intaller script file.
-```
-wget https://raw.githubusercontent.com/hardenedpenguin/sayip-reboot-halt-saypublicip/refs/heads/main/asl3_sayip_reboot_halt.sh
-```
+---
 
-Now we have to make that script executable
-```
-chmod +x asl3_sayip_reboot_halt.sh
-```
+## 🔧 Installation
 
-Now that the file is executable we can go ahead and run the script file to install these features.
-```
-sudo ./asl3_sayip_reboot_halt.sh YOUR_NODE_NUMBER
-```
+1. **Download the installer script:**
 
-# Operation
+   ```bash
+   wget https://raw.githubusercontent.com/hardenedpenguin/sayip-reboot-halt-saypublicip/refs/heads/main/asl3_sayip_reboot_halt.sh
+   ```
 
-```
-*A1 = Say Local IP address of the node
-*A3 = Say Public IP address of the node
-*B1 = is a HALT command to the node
-*B3 = is a REBOOT command for the node
-```
-If you do not wish to have your node speak its Local IP address upon boot you can simply disable it
-```
+2. **Make the script executable:**
+
+   ```bash
+   chmod +x asl3_sayip_reboot_halt.sh
+   ```
+
+3. **Run the installer with your node number:**
+
+   ```bash
+   sudo ./asl3_sayip_reboot_halt.sh YOUR_NODE_NUMBER
+   ```
+
+---
+
+## 🎛️ Operation
+
+Use the following DTMF commands from your AllStar node:
+
+| Command | Action                         |
+|---------|--------------------------------|
+| `*A1`   | Say **Local IP** address       |
+| `*A3`   | Say **Public IP** address      |
+| `*B1`   | **Halt** the node              |
+| `*B3`   | **Reboot** the node            |
+
+---
+
+## 🔇 Disable IP Announcement on Boot
+
+If you prefer not to announce the IP address at boot, disable the systemd service:
+
+```bash
 sudo systemctl disable allstar-sayip
 ```
-
-
-
