@@ -22,6 +22,16 @@ if ! echo "$NODE_NUMBER" | grep -qE '^[0-9]+$'; then
     exit 1
 fi
 
+echo "Installing required dependency: libnet-ifconfig-wrapper-perl..."
+if ! apt-get update >/dev/null; then
+    echo "Failed to run apt-get update. Please check your internet connection and repository configuration."
+    exit 1
+fi
+if ! apt-get install -y libnet-ifconfig-wrapper-perl; then
+    echo "Failed to install libnet-ifconfig-wrapper-perl. Please install it manually."
+    exit 1
+fi
+
 CONF_FILE="/etc/asterisk/rpt.conf"
 BASE_URL="https://raw.githubusercontent.com/hardenedpenguin/sayip-reboot-halt-saypublicip/main"
 TARGET_DIR="/etc/asterisk/local"
