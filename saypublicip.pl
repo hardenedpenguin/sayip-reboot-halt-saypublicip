@@ -25,10 +25,9 @@ if ($ip !~ /(\d{1,3}\.){3}\d{1,3}/) {
     $ip =~ /(\d{1,3}\.){3}\d{1,3}/ || die "Failed to retrieve a valid public IP address from both sources\n";
 }
 
-system("asterisk -rx \"rpt localplay $node $AUDIO_PATH\"") == 0 ||
-    die "Failed to play public IP audio for node $node: $!\n";
+system("asterisk -rx \"rpt localplay $node $AUDIO_PATH\" >/dev/null 2>&1");
 
 sleep 5;
 chomp $ip;
 $ip =~ s/[^0-9.]//g;
-system($SPEAK_SCRIPT, $ip, $node) || warn "Failed to speak public IP address $ip for node $node: $!\n";
+system($SPEAK_SCRIPT, $ip, $node);

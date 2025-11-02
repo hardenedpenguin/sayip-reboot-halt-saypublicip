@@ -21,8 +21,7 @@ use constant {
 my $node = shift @ARGV;
 $node =~ /^\d+$/ || die "No valid node number supplied - usage: sayip.pl <node>\n";
 
-system("asterisk -rx \"rpt localplay $node " . LOCAL_AUDIO_FILE . "\"") == 0 ||
-    die "Failed to play audio for node $node: $!\n";
+system("asterisk -rx \"rpt localplay $node " . LOCAL_AUDIO_FILE . "\" >/dev/null 2>&1");
 
 my $rhInfo = Net::Ifconfig::Wrapper::Ifconfig('list');
 
@@ -34,6 +33,6 @@ for my $interface (keys %$rhInfo) {
     if ($ip =~ /^(\d{1,3}\.){3}\d{1,3}$/) {
         sleep(SLEEP_DURATION);
         $ip =~ s/[^0-9.]//g;
-        system(SPEAKTEXT_SCRIPT, $ip, $node) || warn "Failed to speak IP address $ip for node $node: $!\n";
+        system(SPEAKTEXT_SCRIPT, $ip, $node);
     }
 }

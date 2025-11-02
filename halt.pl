@@ -10,8 +10,7 @@ use warnings;
 
 my $node = shift @ARGV;
 if ($node) {
-    system("asterisk -rx \"rpt localplay $node /etc/asterisk/local/halt\"") == 0 || 
-        die "Failed to play halt audio for node $node: $!\n";
+    system("asterisk -rx \"rpt localplay $node /etc/asterisk/local/halt\" >/dev/null 2>&1");
     sleep 10;
 }
 system("/usr/sbin/poweroff");

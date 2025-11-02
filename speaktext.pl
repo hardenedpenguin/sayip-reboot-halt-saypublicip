@@ -45,7 +45,7 @@ sub speak {
     }
 
     close $fh;
-    system("asterisk -rx \"rpt localplay $node ${LOCALSND}\"") || warn "Failed to play audio: $!\n";
+    system("asterisk -rx \"rpt localplay $node ${LOCALSND}\" >/dev/null 2>&1");
 }
 
 sub add_sound {
