@@ -23,14 +23,16 @@ if ! echo "$NODE_NUMBER" | grep -qE '^[0-9]+$'; then
 fi
 
 echo "Installing required dependency: libnet-ifconfig-wrapper-perl..."
-if ! apt-get update >/dev/null; then
-    echo "Failed to run apt-get update. Please check your internet connection and repository configuration."
+if ! apt-get update >/dev/null 2>&1; then
+    echo "ERROR: Failed to run apt-get update. Please check your internet connection and repository configuration."
     exit 1
 fi
-if ! apt-get install -y libnet-ifconfig-wrapper-perl; then
-    echo "Failed to install libnet-ifconfig-wrapper-perl. Please install it manually."
+if ! apt-get install -y libnet-ifconfig-wrapper-perl >/dev/null 2>&1; then
+    echo "ERROR: Failed to install libnet-ifconfig-wrapper-perl. Please install it manually with:"
+    echo "       sudo apt-get install libnet-ifconfig-wrapper-perl"
     exit 1
 fi
+echo "Dependency installed successfully."
 
 CONF_FILE="/etc/asterisk/rpt.conf"
 BASE_URL="https://raw.githubusercontent.com/hardenedpenguin/sayip-reboot-halt-saypublicip/main"
@@ -58,7 +60,7 @@ cd "$TARGET_DIR" || {
 for FILE in $FILES_TO_DOWNLOAD; do
     if [ ! -f "$FILE" ]; then
         echo "Downloading $FILE..."
-        if ! curl -s -O "$BASE_URL/$FILE"; then
+        if ! curl -sf --max-time 30 -O "$BASE_URL/$FILE"; then
             echo "Failed to download $FILE"
             exit 1
         fi
@@ -92,9 +94,21 @@ systemctl enable allstar-sayip
 
 # Backup and modify the configuration file
 if ! grep -q "cmd,/etc/asterisk/local/sayip.pl" "$CONF_FILE"; then
+    if [ ! -f "$CONF_FILE" ]; then
+        echo "ERROR: Configuration file $CONF_FILE not found. Is Asterisk properly installed?"
+        exit 1
+    fi
     echo "Backing up and modifying $CONF_FILE..."
-    cp "$CONF_FILE" "${CONF_FILE}.bak"
-    sed -i "/\[functions\]/a \\
+    cp "$CONF_FILE" "${CONF_FILE}.bak-$(date +%Y%m%d-%H%M%S)"
+    
+    # Check if [functions] section exists, create if not
+    if ! grep -q "^\[functions\]" "$CONF_FILE"; then
+        echo "" >> "$CONF_FILE"
+        echo "[functions]" >> "$CONF_FILE"
+    fi
+    
+    # Append the new commands
+    sed -i "/^\[functions\]/a \\
 A1 = cmd,/etc/asterisk/local/sayip.pl $NODE_NUMBER \\
 A3 = cmd,/etc/asterisk/local/saypublicip.pl $NODE_NUMBER \\
 B1 = cmd,/etc/asterisk/local/halt.pl $NODE_NUMBER \\
@@ -104,5 +118,19 @@ else
     echo "Commands already exist in $CONF_FILE, skipping modification."
 fi
 
-# Redirect final output to terminal (stdout)
-echo "ASL3 support for sayip/reboot/halt is configured for node $NODE_NUMBER."
+# Final success message
+echo ""
+echo "========================================================================"
+echo "SUCCESS: ASL3 support for sayip/reboot/halt is configured for node $NODE_NUMBER"
+echo "========================================================================"
+echo ""
+echo "DTMF Commands available:"
+echo "  *A1 - Say Local IP address"
+echo "  *A3 - Say Public IP address"
+echo "  *B1 - Halt the system"
+echo "  *B3 - Reboot the system"
+echo ""
+echo "Note: A backup of your configuration was created."
+echo "      To disable boot announcement: sudo systemctl disable allstar-sayip"
+echo "      To uninstall: sudo ./asl3_sayip_uninstall.sh"
+echo ""

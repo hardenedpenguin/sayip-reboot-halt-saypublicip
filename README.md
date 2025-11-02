@@ -48,3 +48,20 @@ If you prefer not to announce the IP address at boot, disable the systemd servic
 ```bash
 sudo systemctl disable allstar-sayip
 ```
+
+## 🗑️ Uninstall
+
+To completely remove the SayIP/reboot/halt functionality:
+
+1. **Download the uninstaller script:**
+
+   ```bash
+   wget https://raw.githubusercontent.com/hardenedpenguin/sayip-reboot-halt-saypublicip/main/asl3_sayip_uninstall.sh
+   ```
+
+2. **Make it executable and run:**
+
+   ```bash
+   chmod +x asl3_sayip_uninstall.sh
+   sudo ./asl3_sayip_uninstall.sh
+   ```
