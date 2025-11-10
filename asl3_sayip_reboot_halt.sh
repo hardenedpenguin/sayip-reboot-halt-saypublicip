@@ -119,7 +119,7 @@ B1 = cmd,/etc/asterisk/local/halt.pl $NODE_NUMBER
 B3 = cmd,/etc/asterisk/local/reboot.pl $NODE_NUMBER
 EOF
 
-chmod 640 "$CUSTOM_SAYIP_CONF"
+chmod 644 "$CUSTOM_SAYIP_CONF"
 chown asterisk:asterisk "$CUSTOM_SAYIP_CONF" 2>/dev/null || \
     echo "Unable to set ownership of $CUSTOM_SAYIP_CONF"
 
