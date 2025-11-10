@@ -14,7 +14,7 @@ echo "This will uninstall the AllStar SayIP/reboot/halt functionality."
 echo "Press Ctrl+C within 5 seconds to cancel..."
 sleep 5
 
-CONF_FILE="/etc/asterisk/rpt.conf"
+CUSTOM_SAYIP_CONF="/etc/asterisk/custom/rpt/sayip.conf"
 TARGET_DIR="/etc/asterisk/local"
 
 # Disable and stop the service
@@ -29,23 +29,14 @@ if [ -f "/etc/systemd/system/allstar-sayip.service" ]; then
     systemctl daemon-reload
 fi
 
-# Remove configuration entries from rpt.conf
-if [ -f "$CONF_FILE" ]; then
-    if grep -q "cmd,/etc/asterisk/local/sayip.pl" "$CONF_FILE"; then
-        echo "Removing configuration entries from $CONF_FILE..."
-        # Create a temporary file without the commands
-        grep -v "cmd,/etc/asterisk/local/sayip.pl" "$CONF_FILE" | \
-        grep -v "cmd,/etc/asterisk/local/saypublicip.pl" | \
-        grep -v "cmd,/etc/asterisk/local/halt.pl" | \
-        grep -v "cmd,/etc/asterisk/local/reboot.pl" > "${CONF_FILE}.tmp" || true
-        
-        # Backup and replace the file
-        cp "$CONF_FILE" "${CONF_FILE}.pre-uninstall-$(date +%Y%m%d-%H%M%S).bak"
-        mv "${CONF_FILE}.tmp" "$CONF_FILE"
-        echo "Configuration removed. Backup saved."
-    else
-        echo "No configuration entries found in $CONF_FILE"
-    fi
+# Remove custom SayIP configuration file
+if [ -f "$CUSTOM_SAYIP_CONF" ]; then
+    echo "Removing $CUSTOM_SAYIP_CONF..."
+    cp "$CUSTOM_SAYIP_CONF" "${CUSTOM_SAYIP_CONF}.pre-uninstall-$(date +%Y%m%d-%H%M%S).bak"
+    rm -f "$CUSTOM_SAYIP_CONF"
+    echo "Custom SayIP configuration removed (backup saved)."
+else
+    echo "Custom SayIP configuration not found at $CUSTOM_SAYIP_CONF"
 fi
 
 # Optionally remove the script files

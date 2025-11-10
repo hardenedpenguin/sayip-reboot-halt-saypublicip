@@ -26,6 +26,13 @@ This is a script for AllStarLink V3 nodes that speaks the node’s IP address at
    sudo ./asl3_sayip_reboot_halt.sh YOUR_NODE_NUMBER
    ```
 
+   The installer will:
+   - Install helper scripts and audio prompts under `/etc/asterisk/local/`
+   - Enable a systemd service that speaks the local IP on boot
+   - Create `/etc/asterisk/custom/rpt/sayip.conf` with a SayIP menu entry and `[functions-sayip]` stanza
+
+   ASL3 nodes include `custom/rpt/*.conf` automatically; if your `rpt.conf` is custom, ensure it includes that directory.
+
 ---
 
 ## 🎛️ Operation

@@ -34,10 +34,12 @@ if ! apt-get install -y libnet-ifconfig-wrapper-perl >/dev/null 2>&1; then
 fi
 echo "Dependency installed successfully."
 
-CONF_FILE="/etc/asterisk/rpt.conf"
 BASE_URL="https://raw.githubusercontent.com/hardenedpenguin/sayip-reboot-halt-saypublicip/main"
 TARGET_DIR="/etc/asterisk/local"
 FILES_TO_DOWNLOAD="halt.pl reboot.pl sayip.pl saypublicip.pl speaktext.pl halt.ulaw reboot.ulaw ip-address.ulaw public-ip-address.ulaw"
+CUSTOM_DIR="/etc/asterisk/custom"
+CUSTOM_RPT_DIR="$CUSTOM_DIR/rpt"
+CUSTOM_SAYIP_CONF="$CUSTOM_RPT_DIR/sayip.conf"
 
 # Create target directory if it doesn't exist
 mkdir -p "$TARGET_DIR" || {
@@ -92,31 +94,34 @@ EOF
 systemctl daemon-reload
 systemctl enable allstar-sayip
 
-# Backup and modify the configuration file
-if ! grep -q "cmd,/etc/asterisk/local/sayip.pl" "$CONF_FILE"; then
-    if [ ! -f "$CONF_FILE" ]; then
-        echo "ERROR: Configuration file $CONF_FILE not found. Is Asterisk properly installed?"
-        exit 1
-    fi
-    echo "Backing up and modifying $CONF_FILE..."
-    cp "$CONF_FILE" "${CONF_FILE}.bak-$(date +%Y%m%d-%H%M%S)"
-    
-    # Check if [functions] section exists, create if not
-    if ! grep -q "^\[functions\]" "$CONF_FILE"; then
-        echo "" >> "$CONF_FILE"
-        echo "[functions]" >> "$CONF_FILE"
-    fi
-    
-    # Append the new commands
-    sed -i "/^\[functions\]/a \\
-A1 = cmd,/etc/asterisk/local/sayip.pl $NODE_NUMBER \\
-A3 = cmd,/etc/asterisk/local/saypublicip.pl $NODE_NUMBER \\
-B1 = cmd,/etc/asterisk/local/halt.pl $NODE_NUMBER \\
-B3 = cmd,/etc/asterisk/local/reboot.pl $NODE_NUMBER \\
-" "$CONF_FILE"
-else
-    echo "Commands already exist in $CONF_FILE, skipping modification."
+# Create custom rpt directory and write SayIP configuration
+mkdir -p "$CUSTOM_RPT_DIR" || {
+    echo "Failed to create directory $CUSTOM_RPT_DIR"
+    exit 1
+}
+
+if [ -f "$CUSTOM_SAYIP_CONF" ]; then
+    cp "$CUSTOM_SAYIP_CONF" "${CUSTOM_SAYIP_CONF}.bak-$(date +%Y%m%d-%H%M%S)"
 fi
+
+cat <<EOF > "$CUSTOM_SAYIP_CONF"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;; SayIP Customization ;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;MENU:sayip:functions:Say local/public IP and reboot/halt via DTMF
+;
+; [functions] overrides for SayIP tools
+;
+[functions-sayip](!)
+A1 = cmd,/etc/asterisk/local/sayip.pl $NODE_NUMBER
+A3 = cmd,/etc/asterisk/local/saypublicip.pl $NODE_NUMBER
+B1 = cmd,/etc/asterisk/local/halt.pl $NODE_NUMBER
+B3 = cmd,/etc/asterisk/local/reboot.pl $NODE_NUMBER
+EOF
+
+chmod 640 "$CUSTOM_SAYIP_CONF"
+chown asterisk:asterisk "$CUSTOM_SAYIP_CONF" 2>/dev/null || \
+    echo "Unable to set ownership of $CUSTOM_SAYIP_CONF"
 
 # Final success message
 echo ""
@@ -124,13 +129,17 @@ echo "========================================================================"
 echo "SUCCESS: ASL3 support for sayip/reboot/halt is configured for node $NODE_NUMBER"
 echo "========================================================================"
 echo ""
-echo "DTMF Commands available:"
+echo "DTMF commands were written to $CUSTOM_SAYIP_CONF."
+echo "Ensure your main rpt.conf includes custom/rpt/*.conf (ASL3 does this by default)."
+echo ""
+echo "SayIP menu entry:"
+echo "  Category: sayip"
+echo "  Commands:"
 echo "  *A1 - Say Local IP address"
 echo "  *A3 - Say Public IP address"
 echo "  *B1 - Halt the system"
 echo "  *B3 - Reboot the system"
 echo ""
-echo "Note: A backup of your configuration was created."
-echo "      To disable boot announcement: sudo systemctl disable allstar-sayip"
-echo "      To uninstall: sudo ./asl3_sayip_uninstall.sh"
+echo "To disable boot announcement: sudo systemctl disable allstar-sayip"
+echo "To uninstall: sudo ./asl3_sayip_uninstall.sh"
 echo ""
