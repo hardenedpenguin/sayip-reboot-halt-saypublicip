@@ -9,7 +9,7 @@ use strict;
 use warnings;
 
 my $node = shift @ARGV;
-if ($node) {
+if ($node && $node =~ /^\d+$/) {
     system("asterisk -rx \"rpt localplay $node /etc/asterisk/local/halt\" >/dev/null 2>&1");
     sleep 10;
 }

@@ -36,7 +36,9 @@ echo "Dependency installed successfully."
 
 BASE_URL="https://raw.githubusercontent.com/hardenedpenguin/sayip-reboot-halt-saypublicip/main"
 TARGET_DIR="/etc/asterisk/local"
-FILES_TO_DOWNLOAD="halt.pl reboot.pl sayip.pl saypublicip.pl speaktext.pl halt.ulaw reboot.ulaw ip-address.ulaw public-ip-address.ulaw"
+PL_FILES="halt.pl reboot.pl sayip.pl saypublicip.pl speaktext.pl"
+ULAW_FILES="halt.ulaw reboot.ulaw ip-address.ulaw public-ip-address.ulaw"
+FILES_TO_DOWNLOAD="$PL_FILES $ULAW_FILES"
 CUSTOM_DIR="/etc/asterisk/custom"
 CUSTOM_RPT_DIR="$CUSTOM_DIR/rpt"
 CUSTOM_SAYIP_CONF="$CUSTOM_RPT_DIR/sayip.conf"
@@ -60,21 +62,24 @@ cd "$TARGET_DIR" || {
 }
 
 for FILE in $FILES_TO_DOWNLOAD; do
-    if [ ! -f "$FILE" ]; then
-        echo "Downloading $FILE..."
-        if ! curl -sf --max-time 30 -O "$BASE_URL/$FILE"; then
-            echo "Failed to download $FILE"
-            exit 1
-        fi
-    else
+    if [ -f "$FILE" ]; then
         echo "$FILE already exists, skipping download."
+        continue
+    fi
+    echo "Downloading $FILE..."
+    if ! curl -sf --max-time 30 -O "$BASE_URL/$FILE"; then
+        echo "ERROR: Failed to download $FILE"
+        exit 1
     fi
 done
 
 # Set permissions for the downloaded files
-chmod 750 *.pl
-chmod 640 *.ulaw
-chown asterisk:asterisk *.pl *.ulaw 2>/dev/null || echo "Unable to set ownership (run as root for this step)"
+for file in $PL_FILES; do
+    [ -f "$file" ] && chmod 750 "$file" && chown asterisk:asterisk "$file" 2>/dev/null || true
+done
+for file in $ULAW_FILES; do
+    [ -f "$file" ] && chmod 640 "$file" && chown asterisk:asterisk "$file" 2>/dev/null || true
+done
 
 cat <<EOF > /etc/systemd/system/allstar-sayip.service
 [Unit]
@@ -120,8 +125,7 @@ B3 = cmd,/etc/asterisk/local/reboot.pl $NODE_NUMBER
 EOF
 
 chmod 644 "$CUSTOM_SAYIP_CONF"
-chown asterisk:asterisk "$CUSTOM_SAYIP_CONF" 2>/dev/null || \
-    echo "Unable to set ownership of $CUSTOM_SAYIP_CONF"
+chown asterisk:asterisk "$CUSTOM_SAYIP_CONF" 2>/dev/null || true
 
 # Final success message
 echo ""

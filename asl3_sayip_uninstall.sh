@@ -21,6 +21,7 @@ TARGET_DIR="/etc/asterisk/local"
 echo "Disabling and stopping allstar-sayip service..."
 systemctl stop allstar-sayip 2>/dev/null || true
 systemctl disable allstar-sayip 2>/dev/null || true
+echo "Service disabled."
 
 # Remove the service file
 if [ -f "/etc/systemd/system/allstar-sayip.service" ]; then
@@ -45,9 +46,9 @@ echo "Do you want to remove the script files from $TARGET_DIR? (y/n)"
 read -r response
 if [ "$response" = "y" ] || [ "$response" = "Y" ]; then
     echo "Removing script files..."
-    rm -f "$TARGET_DIR"/sayip.pl "$TARGET_DIR"/saypublicip.pl \
-          "$TARGET_DIR"/halt.pl "$TARGET_DIR"/reboot.pl \
-          "$TARGET_DIR"/speaktext.pl 2>/dev/null || true
+    for script in sayip.pl saypublicip.pl halt.pl reboot.pl speaktext.pl; do
+        rm -f "$TARGET_DIR/$script" 2>/dev/null || true
+    done
     echo "Script files removed."
 else
     echo "Script files left in place."

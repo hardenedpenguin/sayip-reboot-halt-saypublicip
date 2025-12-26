@@ -51,8 +51,11 @@ sub speak {
 sub add_sound {
     my ($fh, $sound_file) = @_;
     my $full_path = "${ASTSND}/$sound_file";
-    if (-f $full_path) {
-        print $fh `cat "$full_path"`;
+    if (open my $sound_fh, '<', $full_path) {
+        local $/;
+        my $data = <$sound_fh>;
+        print $fh $data;
+        close $sound_fh;
     } else {
         warn "Warning: Sound file $full_path not found, skipping...\n";
     }

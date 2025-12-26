@@ -8,10 +8,8 @@
 
 use strict;
 use warnings;
-use Net::Ifconfig::Wrapper;  # Module for network info
-use lib '/usr/share/perl5';
+use Net::Ifconfig::Wrapper;
 
-# Constants for file paths
 use constant {
     LOCAL_AUDIO_FILE => '/etc/asterisk/local/ip-address',
     SPEAKTEXT_SCRIPT => '/etc/asterisk/local/speaktext.pl',
@@ -27,12 +25,11 @@ my $rhInfo = Net::Ifconfig::Wrapper::Ifconfig('list');
 
 for my $interface (keys %$rhInfo) {
     next if $interface eq 'lo';
-    my ($ip) = keys %{$rhInfo->{$interface}->{inet}};
-    next unless $ip;
+    next unless exists $rhInfo->{$interface}->{inet};
     
-    if ($ip =~ /^(\d{1,3}\.){3}\d{1,3}$/) {
-        sleep(SLEEP_DURATION);
-        $ip =~ s/[^0-9.]//g;
-        system(SPEAKTEXT_SCRIPT, $ip, $node);
-    }
+    my ($ip) = keys %{$rhInfo->{$interface}->{inet}};
+    next unless $ip && $ip =~ /^(\d{1,3}\.){3}\d{1,3}$/;
+    
+    sleep(SLEEP_DURATION);
+    system(SPEAKTEXT_SCRIPT, $ip, $node);
 }
