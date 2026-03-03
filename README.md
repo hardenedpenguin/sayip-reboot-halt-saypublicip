@@ -23,19 +23,18 @@ This will:
 
 ### Post-Installation
 
-After installation, you may need to:
+After installation:
 
-1. **Reload Asterisk configuration** (if Asterisk is running):
+1. **Run the ASL menu** and enable the DTMF commands in the **Customization** menu:
    ```bash
-   sudo asterisk -rx "rpt reload"
+   asl-menu
    ```
+   In the menu, go to **Customization** and enable the DTMF commands for this package.
 
-2. **Restart Asterisk** (if needed):
+2. **Restart Asterisk** so the configuration takes effect:
    ```bash
    sudo systemctl restart asterisk
    ```
-
-ASL3 nodes automatically include `custom/rpt/*.conf` files; if your `rpt.conf` is custom, ensure it includes that directory.
 
 ---
 
