@@ -11,6 +11,7 @@ require 'socket'
 require 'net/http'
 require 'uri'
 require 'fileutils'
+require 'tempfile'
 
 # Constants
 LOCAL_AUDIO_FILE = 'ip-address'
@@ -18,7 +19,6 @@ PUBLIC_AUDIO_PATH = 'public-ip-address'
 HALT_AUDIO = 'halt'
 REBOOT_AUDIO = 'reboot'
 ASTSND = '/usr/share/asterisk/sounds/en'
-LOCALSND = '/tmp/localmsg.ulaw'
 SLEEP_DURATION = 5
 
 # IP service URLs
@@ -39,12 +39,13 @@ CHAR_SOUND_MAP = {
 # Validate node number
 def validate_node(node)
   return false unless node
-  node.match?(/^\d+$/)
+  # Keep it strictly numeric and reasonably bounded to avoid weird edge cases.
+  node.match?(/^\d{1,10}$/)
 end
 
 # Execute asterisk command
 def asterisk_cmd(cmd)
-  system("asterisk -rx \"#{cmd}\" >/dev/null 2>&1")
+  system('asterisk', '-rx', cmd, out: File::NULL, err: File::NULL)
 end
 
 # Play audio file via Asterisk
@@ -70,7 +71,8 @@ def get_local_ips
   
   # Fallback: Parse 'ip addr show' output if Socket.getifaddrs didn't work
   if ips.empty?
-    `ip addr show 2>/dev/null`.each_line do |line|
+    io = IO.popen(%w[ip addr show], err: File::NULL)
+    io.each_line do |line|
       # Match lines like: inet 192.168.1.1/24 brd 192.168.1.255 scope global eth0
       if line =~ /inet\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\//
         ip = Regexp.last_match(1)
@@ -78,6 +80,7 @@ def get_local_ips
         ips << ip unless ip.start_with?('127.')
       end
     end
+    io.close
   end
   
   ips.uniq
@@ -97,6 +100,7 @@ def get_public_ip
     http.open_timeout = 5
     
     response = http.get(uri.request_uri)
+    return nil unless response.is_a?(Net::HTTPSuccess)
     ip = response.body.strip
     
     return ip if ip.match?(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)
@@ -113,6 +117,7 @@ def get_public_ip
     http.open_timeout = 5
     
     response = http.get(uri.request_uri)
+    return nil unless response.is_a?(Net::HTTPSuccess)
     ip = response.body.strip
     
     return ip if ip.match?(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)
@@ -141,11 +146,8 @@ end
 def speak_text(text, node)
   speaktext = text.downcase
   
-  # Remove existing file
-  FileUtils.rm_f(LOCALSND)
-  
-  # Create output file
-  File.open(LOCALSND, 'wb') do |output_fh|
+  Tempfile.create(['localmsg', '.ulaw'], '/tmp') do |tmp|
+    tmp.binmode
     speaktext.each_char do |ch|
       sound_file = nil
       
@@ -159,19 +161,19 @@ def speak_text(text, node)
       end
       
       if sound_file
-        add_sound(output_fh, sound_file)
+        add_sound(tmp, sound_file)
       else
         warn "Unsupported character: #{ch}"
       end
     end
+    tmp.flush
+
+    # Play the generated audio (Asterisk expects path without extension)
+    play_audio(node, tmp.path.sub(/\.ulaw$/, ''))
+
+    # Give Asterisk time to open/read the file before we unlink it
+    sleep 3
   end
-  
-  # Play the generated audio
-  play_audio(node, LOCALSND.sub(/\.ulaw$/, ''))
-  
-  # Clean up after a delay
-  sleep 3
-  FileUtils.rm_f(LOCALSND)
 end
 
 # Announce local IP addresses
