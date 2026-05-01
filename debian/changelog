@@ -1,3 +1,10 @@
+sayip-node-utils (1.0.4-1) unstable; urgency=medium
+
+  * Fix SayIP digit playback by keeping generated audio file available long
+    enough for async Asterisk localplay.
+
+ -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Fri, 01 May 2026 09:26:00 -0600
+
 sayip-node-utils (1.0.3-1) unstable; urgency=medium
 
   * CI fixes: install build-essential, drop dh-systemd, and force JS actions
