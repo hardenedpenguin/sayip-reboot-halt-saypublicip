@@ -1,6 +1,7 @@
 [Unit]
 Description=AllStar SayIP Service - Announce Local IP on Boot
-After=asterisk.service
+After=network-online.target asterisk.service
+Wants=network-online.target
 Requires=asterisk.service
 
 [Service]
