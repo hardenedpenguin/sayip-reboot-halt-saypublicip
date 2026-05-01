@@ -167,12 +167,15 @@ def speak_text(text, node)
       end
     end
     tmp.flush
+    tmp.fsync
+    tmp.chmod(0o644) rescue nil
 
     # Play the generated audio (Asterisk expects path without extension)
     play_audio(node, tmp.path.sub(/\.ulaw$/, ''))
 
-    # Give Asterisk time to open/read the file before we unlink it
-    sleep 3
+    # rpt localplay is async; keep the file around long enough for playback.
+    # Worst-case here is small (IP address), so a conservative delay is fine.
+    sleep 5
   end
 end
 
