@@ -1,3 +1,10 @@
+sayip-node-utils (1.0.3-1) unstable; urgency=medium
+
+  * CI fixes: install build-essential, drop dh-systemd, and force JS actions
+    to Node 24 for upcoming runner changes.
+
+ -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Fri, 01 May 2026 09:06:00 -0600
+
 sayip-node-utils (1.0.1-1) unstable; urgency=medium
 
   * Harden sayip-node-utils temp file handling and avoid shell execution.
