@@ -11,8 +11,8 @@ This is a Debian package for AllStarLink V3 nodes that speaks the node's IP addr
 Download and install the package with your node number:
 
 ```bash
-wget https://github.com/hardenedpenguin/sayip-reboot-halt-saypublicip/releases/download/v1.0.2/sayip-node-utils_1.0.1-1_all.deb
-sudo NODE_NUMBER=12345 dpkg -i sayip-node-utils_1.0.1-1_all.deb
+wget https://github.com/hardenedpenguin/sayip-reboot-halt-saypublicip/releases/download/v1.0.3/sayip-node-utils_1.0.3-1_all.deb
+sudo NODE_NUMBER=12345 dpkg -i sayip-node-utils_1.0.3-1_all.deb
 ```
 
 This will:
@@ -65,7 +65,7 @@ If you need to change the node number after installation:
 Alternatively, you can reinstall the package with a different node number:
 
 ```bash
-sudo NODE_NUMBER=NEW_NODE_NUMBER dpkg -i sayip-node-utils_1.0.1-1_all.deb
+sudo NODE_NUMBER=NEW_NODE_NUMBER dpkg -i sayip-node-utils_1.0.3-1_all.deb
 ```
 
 ---
