@@ -1,0 +1,144 @@
+name: Release Debian package
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            devscripts \
+            debhelper \
+            dh-systemd \
+            fakeroot \
+            ruby \
+            ca-certificates
+
+      - name: Compute version
+        id: meta
+        run: |
+          set -euo pipefail
+          version="$(dpkg-parsechangelog -SVersion)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build package
+        run: |
+          set -eux
+          dpkg-buildpackage -us -uc -b
+
+          mkdir -p dist
+          mv -v ../*.deb dist/
+          (cd dist && sha256sum *.deb > SHA256SUMS)
+
+      - name: Bump README install version (main)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          deb_path="$(ls -1 dist/*.deb | head -n 1)"
+          deb_file="$(basename "$deb_path")"
+
+          git fetch origin main
+          git checkout main
+
+          perl -pi -e "s#https://github\\.com/hardenedpenguin/sayip-reboot-halt-saypublicip/releases/download/v[^/]+/sayip-node-utils_[^\\s]+_all\\.deb#https://github.com/hardenedpenguin/sayip-reboot-halt-saypublicip/releases/download/${TAG_NAME}/${deb_file}#g" README.md
+          perl -pi -e "s#\\bdpkg -i sayip-node-utils_[^\\s]+_all\\.deb#dpkg -i ${deb_file}#g" README.md
+
+          if git diff --quiet -- README.md; then
+            echo "README.md already up to date; skipping commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "README: bump install package version for ${TAG_NAME}"
+          git push origin main
+
+      - name: Create GitHub Release (attach .deb)
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*.deb
+            dist/SHA256SUMS
+
+      - name: Prepare Pages site
+        run: |
+          set -eux
+          mkdir -p site
+          cp -v dist/*.deb site/
+          cp -v dist/SHA256SUMS site/
+
+          deb="$(ls -1 site/*.deb | head -n 1)"
+          deb_file="$(basename "$deb")"
+          sha_line="$(grep "  $deb_file\$" site/SHA256SUMS || true)"
+
+          cat > site/index.html <<EOF
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <title>sayip-node-utils downloads</title>
+              <style>
+                body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif; margin: 2rem; line-height: 1.4; }
+                code { background: rgba(0,0,0,.06); padding: .15rem .35rem; border-radius: .3rem; }
+                a { color: inherit; }
+                .muted { color: rgba(0,0,0,.65); }
+                .box { border: 1px solid rgba(0,0,0,.15); border-radius: .5rem; padding: 1rem; max-width: 900px; }
+              </style>
+            </head>
+            <body>
+              <h1>sayip-node-utils</h1>
+              <p class="muted">Latest build published from tag: <code>${GITHUB_REF_NAME}</code></p>
+              <div class="box">
+                <p><strong>Debian package</strong>: <a href="./${deb_file}"><code>${deb_file}</code></a></p>
+                <p><strong>SHA256</strong>:</p>
+                <pre><code>${sha_line}</code></pre>
+                <p><a href="./SHA256SUMS">Download <code>SHA256SUMS</code></a></p>
+              </div>
+            </body>
+          </html>
+          EOF
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+

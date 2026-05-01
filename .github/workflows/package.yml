@@ -1,0 +1,45 @@
+name: Build Debian package
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            devscripts \
+            debhelper \
+            dh-systemd \
+            fakeroot \
+            ruby \
+            ca-certificates
+
+      - name: Build package
+        run: |
+          set -eux
+          dpkg-buildpackage -us -uc -b
+
+          mkdir -p dist
+          # .deb is written to the parent directory by dpkg-buildpackage
+          mv -v ../*.deb dist/
+          (cd dist && sha256sum *.deb > SHA256SUMS)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package
+          path: |
+            dist/*.deb
+            dist/SHA256SUMS
+
