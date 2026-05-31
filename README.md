@@ -13,8 +13,8 @@ IPv4 is supported for IP discovery and announcement. IPv6 addresses are intentio
 Download and install the package with your node number:
 
 ```bash
-wget https://github.com/hardenedpenguin/sayip-reboot-halt-saypublicip/releases/download/v1.0.5/sayip-node-utils_1.0.5-1_all.deb
-sudo NODE_NUMBER=12345 dpkg -i sayip-node-utils_1.0.5-1_all.deb
+wget https://github.com/hardenedpenguin/sayip-reboot-halt-saypublicip/releases/download/v1.0.6/sayip-node-utils_1.0.6-1_all.deb
+sudo NODE_NUMBER=12345 dpkg -i sayip-node-utils_1.0.6-1_all.deb
 ```
 
 This will:
@@ -95,7 +95,7 @@ If you need to change the node number after installation:
 Alternatively, reinstall with a node number to update both files automatically:
 
 ```bash
-sudo NODE_NUMBER=NEW_NODE_NUMBER dpkg -i sayip-node-utils_1.0.5-1_all.deb
+sudo NODE_NUMBER=NEW_NODE_NUMBER dpkg -i sayip-node-utils_1.0.6-1_all.deb
 ```
 
 ---
