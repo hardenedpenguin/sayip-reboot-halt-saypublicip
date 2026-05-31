@@ -44,6 +44,8 @@ module SayIP
       sleep_after_intro: 0.0,
       skip_if_prefix: DEFAULT_SKIP_PREFIXES,
       local_ip_mode: 'default_route',
+      local_ip_interface: '',
+      prefer_interfaces: [],
       user_agent: 'sayip-node-utils/1.0'
     }.freeze
 
@@ -54,6 +56,7 @@ module SayIP
     def initialize(overrides = {})
       @config = DEFAULT_CONFIG.merge(load_config_file).merge(overrides)
       @config[:skip_if_prefix] = parse_skip_prefixes(@config[:skip_if_prefix])
+      @config[:prefer_interfaces] = parse_interface_list(@config[:prefer_interfaces])
     end
 
     attr_reader :config
@@ -100,14 +103,7 @@ module SayIP
     end
 
     def get_local_ips
-      ips = case local_ip_mode
-            when 'all'
-              select_all_local_ips
-            else
-              select_default_route_ip
-            end
-
-      ips.uniq
+      select_configured_local_ips.uniq
     rescue StandardError => e
       warn "Warning: Error getting local IPs: #{e.message}"
       []
@@ -215,6 +211,10 @@ module SayIP
           config[:skip_if_prefix] = value.strip
         when 'LOCAL_IP_MODE'
           config[:local_ip_mode] = value.strip.downcase
+        when 'LOCAL_IP_INTERFACE'
+          config[:local_ip_interface] = value.strip
+        when 'PREFER_INTERFACES'
+          config[:prefer_interfaces] = value.strip
         when 'PREFER_DEFAULT_ROUTE'
           # Legacy setting: "no" meant announce all interfaces in older releases.
           config[:local_ip_mode] = 'all' unless %w[yes true 1].include?(value.strip.downcase)
@@ -243,9 +243,47 @@ module SayIP
       @config[:skip_if_prefix].any? { |prefix| name.start_with?(prefix) }
     end
 
+    def parse_interface_list(value)
+      case value
+      when Array
+        value.map(&:to_s).map(&:strip).reject(&:empty?)
+      when String
+        value.split(',').map(&:strip).reject(&:empty?)
+      else
+        []
+      end
+    end
+
     def local_ip_mode
       mode = @config[:local_ip_mode].to_s.downcase
       mode == 'all' ? 'all' : 'default_route'
+    end
+
+    def select_configured_local_ips
+      iface = @config[:local_ip_interface].to_s.strip
+      return ip_on_named_interface(iface) unless iface.empty?
+
+      @config[:prefer_interfaces].each do |preferred|
+        ip = ip_on_interface(preferred)
+        return [ip] if ip
+      end
+
+      case local_ip_mode
+      when 'all'
+        select_all_local_ips
+      else
+        select_default_route_ip
+      end
+    end
+
+    def ip_on_named_interface(iface)
+      ip = ip_on_interface(iface)
+      unless ip
+        warn "Warning: No IPv4 address on configured interface #{iface}"
+        return []
+      end
+
+      [ip]
     end
 
     def select_default_route_ip

@@ -54,6 +54,31 @@ class SayIPUtilsTest < Minitest::Test
     end
   end
 
+  def test_get_local_ips_prefer_interfaces_before_default_route
+    utils = SayIP::Utils.new(
+      local_ip_mode: 'default_route',
+      prefer_interfaces: ['wrinkles']
+    )
+
+    utils.stub(:default_route_iface, 'wlan0') do
+      utils.stub(:collect_ips_from_ifaddrs, lambda { |**_kwargs|
+        [['10.8.0.9', 'wrinkles'], ['10.10.2.50', 'wlan0']]
+      }) do
+        assert_equal ['10.8.0.9'], utils.get_local_ips
+      end
+    end
+  end
+
+  def test_get_local_ips_local_ip_interface_overrides_default_route
+    utils = SayIP::Utils.new(local_ip_interface: 'wrinkles')
+
+    utils.stub(:collect_ips_from_ifaddrs, lambda { |**_kwargs|
+      [['10.8.0.9', 'wrinkles'], ['10.10.2.50', 'wlan0']]
+    }) do
+      assert_equal ['10.8.0.9'], utils.get_local_ips
+    end
+  end
+
   def test_get_local_ips_all_mode_announces_every_usable_address
     utils = SayIP::Utils.new(local_ip_mode: 'all')
 
