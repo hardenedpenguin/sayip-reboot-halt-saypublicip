@@ -69,8 +69,10 @@ Playback timing, sound paths, and local IP filtering can be tuned without editin
 | `CUSTOM_SOUNDS` | Directory for package prompt files |
 | `PLAYBACK_PADDING` | Extra seconds added after calculated ulaw playback |
 | `SLEEP_AFTER_INTRO` | Fixed intro delay; `0` derives delay from audio file size |
-| `SKIP_IF_PREFIX` | Comma-separated interface prefixes to skip (docker, veth, etc.) |
-| `PREFER_DEFAULT_ROUTE` | When `yes`, announce the default-route interface IP first |
+| `SKIP_IF_PREFIX` | Comma-separated interface prefixes to skip in `all` mode (docker, veth, etc.) |
+| `LOCAL_IP_MODE` | `default_route` (default) announces only the IPv4 on the default-route interface; `all` announces every non-skipped address |
+
+By default, local IP announcement uses the **default-route interface** — for example a WireGuard VPN named `wrinkles` at `10.8.0.9` when that is how the node is reached, rather than also reading `wlan0`. Loopback addresses are never announced.
 | `USER_AGENT` | HTTP User-Agent for public IP lookups |
 
 See `/usr/share/doc/sayip-node-utils/sayip.example` for defaults.

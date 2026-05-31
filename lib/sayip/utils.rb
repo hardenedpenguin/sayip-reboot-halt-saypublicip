@@ -33,7 +33,7 @@ module SayIP
       '$' => 'letters/dollar.ulaw'
     }.freeze
 
-    DEFAULT_SKIP_PREFIXES = %w[lo docker veth br- tailscale tun wg].freeze
+    DEFAULT_SKIP_PREFIXES = %w[lo docker veth br-].freeze
     ULAW_BYTES_PER_SEC = 8000.0
     CONFIG_PATH = '/etc/default/sayip'
 
@@ -43,7 +43,7 @@ module SayIP
       playback_padding: 0.5,
       sleep_after_intro: 0.0,
       skip_if_prefix: DEFAULT_SKIP_PREFIXES,
-      prefer_default_route: true,
+      local_ip_mode: 'default_route',
       user_agent: 'sayip-node-utils/1.0'
     }.freeze
 
@@ -73,6 +73,18 @@ module SayIP
       nil
     end
 
+    def usable_local_ipv4(text)
+      parsed = parse_ipv4(text)
+      return nil unless parsed
+
+      addr = IPAddr.new(parsed)
+      return nil if addr.loopback?
+
+      parsed
+    rescue IPAddr::InvalidAddressError
+      nil
+    end
+
     def asterisk_cmd(cmd)
       ok = system('asterisk', '-rx', cmd, out: File::NULL, err: File::NULL)
       warn "Warning: Asterisk command failed: #{cmd}" unless ok
@@ -88,11 +100,14 @@ module SayIP
     end
 
     def get_local_ips
-      pairs = collect_ips_from_ifaddrs
-      pairs = collect_ips_from_ip_addr if pairs.empty?
+      ips = case local_ip_mode
+            when 'all'
+              select_all_local_ips
+            else
+              select_default_route_ip
+            end
 
-      ordered = order_ips(pairs)
-      ordered.map(&:first).uniq
+      ips.uniq
     rescue StandardError => e
       warn "Warning: Error getting local IPs: #{e.message}"
       []
@@ -198,8 +213,11 @@ module SayIP
           config[:sleep_after_intro] = value.strip.to_f
         when 'SKIP_IF_PREFIX'
           config[:skip_if_prefix] = value.strip
+        when 'LOCAL_IP_MODE'
+          config[:local_ip_mode] = value.strip.downcase
         when 'PREFER_DEFAULT_ROUTE'
-          config[:prefer_default_route] = %w[yes true 1].include?(value.strip.downcase)
+          # Legacy setting: "no" meant announce all interfaces in older releases.
+          config[:local_ip_mode] = 'all' unless %w[yes true 1].include?(value.strip.downcase)
         when 'USER_AGENT'
           config[:user_agent] = value.strip
         end
@@ -225,6 +243,41 @@ module SayIP
       @config[:skip_if_prefix].any? { |prefix| name.start_with?(prefix) }
     end
 
+    def local_ip_mode
+      mode = @config[:local_ip_mode].to_s.downcase
+      mode == 'all' ? 'all' : 'default_route'
+    end
+
+    def select_default_route_ip
+      iface = default_route_iface
+      unless iface
+        warn 'Warning: No default IPv4 route found; falling back to primary interface'
+        return select_all_local_ips.take(1)
+      end
+
+      ip = ip_on_interface(iface)
+      unless ip
+        warn "Warning: No IPv4 address on default-route interface #{iface}; falling back to primary interface"
+        return select_all_local_ips.take(1)
+      end
+
+      [ip]
+    end
+
+    def select_all_local_ips
+      pairs = collect_ips_from_ifaddrs
+      pairs = collect_ips_from_ip_addr if pairs.empty?
+      pairs.map(&:first)
+    end
+
+    def ip_on_interface(iface)
+      pairs = collect_ips_from_ifaddrs(skip_filtered: false)
+      pairs = collect_ips_from_ip_addr(skip_filtered: false) if pairs.empty?
+
+      match = pairs.find { |(_, name)| name == iface }
+      match&.first
+    end
+
     def default_route_iface
       IO.popen(%w[ip -4 route show default], err: File::NULL) do |io|
         io.each_line do |line|
@@ -236,22 +289,22 @@ module SayIP
       nil
     end
 
-    def collect_ips_from_ifaddrs
+    def collect_ips_from_ifaddrs(skip_filtered: true)
       return [] unless Socket.respond_to?(:getifaddrs)
 
       pairs = []
       Socket.getifaddrs.each do |ifaddr|
-        next if skipped_interface?(ifaddr.name)
+        next if skip_filtered && skipped_interface?(ifaddr.name)
         next unless ifaddr.addr&.ipv4?
 
         ip = ifaddr.addr.ip_address
-        parsed = parse_ipv4(ip)
+        parsed = usable_local_ipv4(ip)
         pairs << [parsed, ifaddr.name] if parsed
       end
       pairs
     end
 
-    def collect_ips_from_ip_addr
+    def collect_ips_from_ip_addr(skip_filtered: true)
       pairs = []
       current_iface = nil
 
@@ -261,24 +314,15 @@ module SayIP
             current_iface = Regexp.last_match(1)
           elsif line =~ %r{inet\s+(\d{1,3}(?:\.\d{1,3}){3})/}
             ip = Regexp.last_match(1)
-            next if current_iface.nil? || skipped_interface?(current_iface)
+            next if current_iface.nil? || (skip_filtered && skipped_interface?(current_iface))
 
-            parsed = parse_ipv4(ip)
+            parsed = usable_local_ipv4(ip)
             pairs << [parsed, current_iface] if parsed
           end
         end
       end
 
       pairs
-    end
-
-    def order_ips(pairs)
-      return pairs unless @config[:prefer_default_route]
-
-      preferred = default_route_iface
-      return pairs unless preferred
-
-      pairs.sort_by { |(_, iface)| iface == preferred ? 0 : 1 }
     end
 
     def fetch_ip_from(url)

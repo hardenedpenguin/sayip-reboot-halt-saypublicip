@@ -7,7 +7,7 @@ class SayIPUtilsTest < Minitest::Test
   def setup
     @utils = SayIP::Utils.new(
       skip_if_prefix: %w[docker veth br-],
-      prefer_default_route: false,
+      local_ip_mode: 'all',
       playback_padding: 0.0
     )
   end
@@ -37,13 +37,30 @@ class SayIPUtilsTest < Minitest::Test
     assert_nil @utils.parse_ipv4('::1')
   end
 
-  def test_order_ips_prefers_default_route_interface
-    utils = SayIP::Utils.new(prefer_default_route: true)
-    pairs = [['10.0.0.2', 'eth0'], ['192.168.1.5', 'wlan0']]
+  def test_usable_local_ipv4_rejects_loopback
+    assert_nil @utils.usable_local_ipv4('127.0.0.1')
+    assert_equal '10.8.0.9', @utils.usable_local_ipv4('10.8.0.9')
+  end
 
-    utils.stub(:default_route_iface, 'wlan0') do
-      ordered = utils.send(:order_ips, pairs)
-      assert_equal 'wlan0', ordered.first[1]
+  def test_get_local_ips_default_route_mode_announces_only_route_interface
+    utils = SayIP::Utils.new(local_ip_mode: 'default_route')
+
+    utils.stub(:default_route_iface, 'wrinkles') do
+      utils.stub(:collect_ips_from_ifaddrs, lambda { |**_kwargs|
+        [['10.8.0.9', 'wrinkles'], ['192.168.1.50', 'wlan0']]
+      }) do
+        assert_equal ['10.8.0.9'], utils.get_local_ips
+      end
+    end
+  end
+
+  def test_get_local_ips_all_mode_announces_every_usable_address
+    utils = SayIP::Utils.new(local_ip_mode: 'all')
+
+    utils.stub(:collect_ips_from_ifaddrs, lambda { |**_kwargs|
+      [['10.8.0.9', 'wrinkles'], ['192.168.1.50', 'wlan0']]
+    }) do
+      assert_equal ['10.8.0.9', '192.168.1.50'], utils.get_local_ips
     end
   end
 
@@ -51,6 +68,7 @@ class SayIPUtilsTest < Minitest::Test
     assert @utils.send(:skipped_interface?, 'docker0')
     assert @utils.send(:skipped_interface?, 'veth123')
     refute @utils.send(:skipped_interface?, 'eth0')
+    refute @utils.send(:skipped_interface?, 'wrinkles')
   end
 
   def test_ulaw_duration_from_file_size
