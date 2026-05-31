@@ -198,34 +198,38 @@ module SayIP
         key, value = line.split('=', 2)
         next unless key && value
 
-        case key.strip
-        when 'ASTSND'
-          config[:astsnd] = value.strip
-        when 'CUSTOM_SOUNDS'
-          config[:custom_sounds] = value.strip
-        when 'PLAYBACK_PADDING'
-          config[:playback_padding] = value.strip.to_f
-        when 'SLEEP_AFTER_INTRO'
-          config[:sleep_after_intro] = value.strip.to_f
-        when 'SKIP_IF_PREFIX'
-          config[:skip_if_prefix] = value.strip
-        when 'LOCAL_IP_MODE'
-          config[:local_ip_mode] = value.strip.downcase
-        when 'LOCAL_IP_INTERFACE'
-          config[:local_ip_interface] = value.strip
-        when 'PREFER_INTERFACES'
-          config[:prefer_interfaces] = value.strip
-        when 'PREFER_DEFAULT_ROUTE'
-          # Legacy setting: "no" meant announce all interfaces in older releases.
-          config[:local_ip_mode] = 'all' unless %w[yes true 1].include?(value.strip.downcase)
-        when 'USER_AGENT'
-          config[:user_agent] = value.strip
-        end
+        apply_config_setting(config, key.strip, value.strip)
       end
       config
     rescue StandardError => e
       warn "Warning: Could not read #{CONFIG_PATH}: #{e.message}"
       {}
+    end
+
+    def apply_config_setting(config, key, value)
+      case key
+      when 'ASTSND'
+        config[:astsnd] = value
+      when 'CUSTOM_SOUNDS'
+        config[:custom_sounds] = value
+      when 'PLAYBACK_PADDING'
+        config[:playback_padding] = value.to_f
+      when 'SLEEP_AFTER_INTRO'
+        config[:sleep_after_intro] = value.to_f
+      when 'SKIP_IF_PREFIX'
+        config[:skip_if_prefix] = value
+      when 'LOCAL_IP_MODE'
+        config[:local_ip_mode] = value.downcase
+      when 'LOCAL_IP_INTERFACE'
+        config[:local_ip_interface] = value
+      when 'PREFER_INTERFACES'
+        config[:prefer_interfaces] = value
+      when 'PREFER_DEFAULT_ROUTE'
+        # Legacy setting: "no" meant announce all interfaces in older releases.
+        config[:local_ip_mode] = 'all' unless %w[yes true 1].include?(value.downcase)
+      when 'USER_AGENT'
+        config[:user_agent] = value
+      end
     end
 
     def parse_skip_prefixes(value)
