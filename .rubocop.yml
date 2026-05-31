@@ -1,0 +1,50 @@
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 2.7
+
+Metrics/BlockLength:
+  Exclude:
+    - 'test/**/*'
+
+Metrics/ClassLength:
+  Exclude:
+    - 'lib/sayip/utils.rb'
+
+Metrics/MethodLength:
+  Max: 35
+
+Metrics/AbcSize:
+  Max: 35
+  Exclude:
+    - 'lib/sayip/utils.rb'
+
+Metrics/CyclomaticComplexity:
+  Max: 15
+  Exclude:
+    - 'lib/sayip/utils.rb'
+
+Metrics/PerceivedComplexity:
+  Max: 12
+  Exclude:
+    - 'lib/sayip/utils.rb'
+
+Naming/AccessorMethodName:
+  Exclude:
+    - 'lib/sayip/utils.rb'
+
+Naming/MethodParameterName:
+  AllowedNames:
+    - ch
+
+Naming/PredicateMethod:
+  Exclude:
+    - 'lib/sayip/utils.rb'
+
+Style/Documentation:
+  Enabled: false
+
+Style/StderrPuts:
+  Enabled: false
+
+Layout/LineLength:
+  Max: 120

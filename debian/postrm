@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+# Postrm script - run after package removal
+
+if [ "$1" = "purge" ]; then
+    rm -f /etc/systemd/system/allstar-sayip.service
+    rm -f /etc/default/sayip
+    rm -f /etc/sudoers.d/sayip-node-utils
+    systemctl daemon-reload 2>/dev/null || true
+fi
+
+exit 0

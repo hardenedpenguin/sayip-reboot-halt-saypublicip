@@ -1,0 +1,23 @@
+# Configuration for sayip-node-utils
+# Copy to /etc/default/sayip or let the package install this file on first install.
+
+# Asterisk sound directory for digits and letters (locale-specific).
+ASTSND=/usr/share/asterisk/sounds/en
+
+# Directory containing package prompt files (ip-address, halt, reboot, etc.).
+CUSTOM_SOUNDS=/usr/local/share/asterisk/sounds
+
+# Extra seconds added after calculated ulaw playback duration.
+PLAYBACK_PADDING=0.5
+
+# Fixed delay after intro prompts; 0 means derive duration from the audio file size.
+SLEEP_AFTER_INTRO=0
+
+# Comma-separated interface name prefixes to skip when announcing local IPs.
+SKIP_IF_PREFIX=docker,veth,br-,tailscale,tun,wg
+
+# When yes, announce the default-route interface IP first.
+PREFER_DEFAULT_ROUTE=yes
+
+# User-Agent header for public IP HTTP lookups.
+USER_AGENT=sayip-node-utils/1.0

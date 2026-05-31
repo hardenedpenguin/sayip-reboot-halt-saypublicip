@@ -1,0 +1,14 @@
+# Debian package build artifacts
+debian/files
+debian/debhelper-build-stamp
+debian/*.substvars
+debian/*.debhelper
+debian/.debhelper/
+debian/sayip-node-utils/
+
+*.deb
+*.changes
+*.buildinfo
+*.dsc
+*.tar.*
+*.upload

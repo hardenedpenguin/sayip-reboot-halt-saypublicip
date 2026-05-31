@@ -1,71 +1,114 @@
 #!/bin/sh
-set +e
+set -e
 
-# Check if we're being called during package installation
-if [ "$1" = "configure" ]; then
-    # Get node number - try environment variable first, then debconf, then interactive prompt
-    # NODE_NUMBER may already be set from environment (e.g., NODE_NUMBER=546054 dpkg -i ...)
-    # Only try other methods if not already set
-    if [ -z "$NODE_NUMBER" ]; then
-        # Try to get from debconf if available
-        if [ -f /usr/share/debconf/confmodule ]; then
-            . /usr/share/debconf/confmodule 2>/dev/null || true
-            db_get sayip-node-utils/node-number 2>/dev/null && NODE_NUMBER="$RET" || true
+# Postinst script - run after package installation
+
+is_valid_node_number() {
+    echo "$1" | grep -qE '^[0-9]{1,10}$'
+}
+
+get_node_number() {
+    if [ -n "$NODE_NUMBER" ]; then
+        echo "$NODE_NUMBER"
+        return 0
+    fi
+
+    if [ -f /usr/share/debconf/confmodule ]; then
+        . /usr/share/debconf/confmodule 2>/dev/null || true
+        if db_get sayip-node-utils/node-number 2>/dev/null && [ -n "$RET" ]; then
+            echo "$RET"
+            return 0
         fi
     fi
-    
-    # If no node number from environment or debconf, prompt interactively (if we have a TTY)
-    if [ -z "$NODE_NUMBER" ] && [ -t 0 ] && [ -t 1 ]; then
+
+    if [ -t 0 ] && [ -t 1 ]; then
         echo ""
         echo "AllStarLink Node Number Configuration"
         echo "======================================"
         printf "Please enter your AllStarLink node number: "
-        read -r NODE_NUMBER
+        read -r entered
+        echo "$entered"
+        return 0
     fi
-    
-    # Validate node number format if provided
-    if [ -n "$NODE_NUMBER" ] && ! echo "$NODE_NUMBER" | grep -qE '^[0-9]+$'; then
-        echo "Warning: Invalid node number format: $NODE_NUMBER (should be numeric)"
-        NODE_NUMBER=""
-    fi
-    
-    # Create custom rpt directory if it doesn't exist
+
+    return 1
+}
+
+install_sayip_conf() {
+    node_number="$1"
+    example="/usr/share/doc/sayip-node-utils/sayip.conf.example"
+    target="/etc/asterisk/custom/rpt/sayip.conf"
+
     mkdir -p /etc/asterisk/custom/rpt
-    
-    # Copy configuration file if it doesn't exist
-    # Substitute node number if provided, otherwise use $NODE (Asterisk variable)
-    if [ ! -f /etc/asterisk/custom/rpt/sayip.conf ]; then
-        if [ -n "$NODE_NUMBER" ]; then
-            # Substitute actual node number
-            sed "s/\$NODE/$NODE_NUMBER/g" /usr/share/doc/sayip-node-utils/sayip.conf.example > /etc/asterisk/custom/rpt/sayip.conf
-        else
-            # Use Asterisk variable $NODE (expanded at runtime)
-            cp /usr/share/doc/sayip-node-utils/sayip.conf.example /etc/asterisk/custom/rpt/sayip.conf
+
+    if [ -n "$node_number" ]; then
+        sed "s/\$NODE/$node_number/g" "$example" > "$target"
+    else
+        cp "$example" "$target"
+    fi
+
+    chmod 0644 "$target"
+    chown asterisk:asterisk "$target" 2>/dev/null || true
+}
+
+install_systemd_service() {
+    node_number="$1"
+    example="/usr/share/doc/sayip-node-utils/examples/allstar-sayip.service"
+    target="/etc/systemd/system/allstar-sayip.service"
+
+    [ -n "$node_number" ] || return 0
+    [ -f "$example" ] || return 0
+
+    sed "s/NODE_NUMBER_PLACEHOLDER/$node_number/g" "$example" > "$target"
+    chmod 0644 "$target"
+    systemctl daemon-reload 2>/dev/null || true
+    systemctl enable allstar-sayip.service 2>/dev/null || true
+}
+
+if [ "$1" = "configure" ]; then
+    node_number=""
+    if node_number="$(get_node_number)"; then
+        if ! is_valid_node_number "$node_number"; then
+            echo "Warning: Invalid node number format: $node_number (expected 1-10 digits)"
+            node_number=""
         fi
-        chmod 0644 /etc/asterisk/custom/rpt/sayip.conf
-        chown asterisk:asterisk /etc/asterisk/custom/rpt/sayip.conf 2>/dev/null || true
+    fi
+
+    if [ ! -f /etc/default/sayip ] && [ -f /usr/share/doc/sayip-node-utils/sayip.example ]; then
+        cp /usr/share/doc/sayip-node-utils/sayip.example /etc/default/sayip
+        chmod 0644 /etc/default/sayip
+        echo "Default configuration installed at /etc/default/sayip"
+    fi
+
+    if [ -f /etc/sudoers.d/sayip-node-utils ]; then
+        chmod 0440 /etc/sudoers.d/sayip-node-utils
+        if command -v visudo >/dev/null 2>&1; then
+            visudo -cf /etc/sudoers.d/sayip-node-utils >/dev/null 2>&1 || {
+                echo "Warning: sudoers entry failed validation; halt/reboot may require root"
+            }
+        fi
+    fi
+
+    if [ -f /etc/asterisk/custom/rpt/sayip.conf ] && [ -n "$node_number" ]; then
+        install_sayip_conf "$node_number"
+        echo "Configuration file updated at /etc/asterisk/custom/rpt/sayip.conf"
+    elif [ ! -f /etc/asterisk/custom/rpt/sayip.conf ]; then
+        install_sayip_conf "$node_number"
         echo "Configuration file created at /etc/asterisk/custom/rpt/sayip.conf"
     else
         echo "Configuration file /etc/asterisk/custom/rpt/sayip.conf already exists, skipping..."
     fi
-    
-    # Set correct file ownership (asterisk user should exist due to asl3-asterisk dependency)
+
     chown asterisk:asterisk /usr/sbin/sayip-node-utils 2>/dev/null || true
     chown -R asterisk:asterisk /usr/local/share/asterisk/sounds 2>/dev/null || true
-    
-    # Create systemd service for boot-time IP announcement
-    if [ -n "$NODE_NUMBER" ] && [ -f /usr/share/doc/sayip-node-utils/examples/allstar-sayip.service ]; then
-        if [ ! -f /etc/systemd/system/allstar-sayip.service ]; then
-            sed "s/NODE_NUMBER_PLACEHOLDER/$NODE_NUMBER/g" /usr/share/doc/sayip-node-utils/examples/allstar-sayip.service > /etc/systemd/system/allstar-sayip.service
-            systemctl daemon-reload 2>/dev/null || true
-            systemctl enable allstar-sayip.service 2>/dev/null || true
-            echo "Systemd service allstar-sayip.service created and enabled"
-        else
-            echo "Systemd service allstar-sayip.service already exists, skipping..."
-        fi
+
+    if [ -n "$node_number" ]; then
+        install_systemd_service "$node_number"
+        echo "Systemd service allstar-sayip.service installed and enabled"
+    elif [ ! -f /etc/systemd/system/allstar-sayip.service ]; then
+        echo "No node number configured; boot-time IP announcement service was not created."
+        echo "Reinstall with NODE_NUMBER=12345 or configure debconf to enable it."
     fi
-    
 fi
 
 exit 0
-

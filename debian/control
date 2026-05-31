@@ -12,6 +12,7 @@ Architecture: all
 Depends: ${misc:Depends},
          ruby (>= 2.1),
          asl3-asterisk,
+         sudo,
          debconf (>= 0.5) | debconf-2.0
 Description: SayIP and node control utilities for AllStarLink
  A set of utilities for AllStarLink nodes to:
@@ -21,7 +22,6 @@ Description: SayIP and node control utilities for AllStarLink
   - Control node reboot via DTMF commands
  .
  This package includes:
-  - sayip-node-utils.rb: Unified Ruby script for all functionality
+  - sayip-node-utils: Unified Ruby script for all functionality
   - Audio files for IP announcements and system control
   - Example configuration for ASL3 custom/rpt integration
-

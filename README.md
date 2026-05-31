@@ -4,6 +4,8 @@
 
 This is a Debian package for AllStarLink V3 nodes that speaks the node's IP address at boot. It can announce the **local** or **public** IP address and includes features to **halt** or **reboot** the node using DTMF commands.
 
+IPv4 is supported for IP discovery and announcement. IPv6 addresses are intentionally ignored.
+
 ---
 
 ## 🔧 Installation
@@ -17,9 +19,13 @@ sudo NODE_NUMBER=12345 dpkg -i sayip-node-utils_1.0.4-1_all.deb
 
 This will:
 - Install the `sayip-node-utils` Ruby script to `/usr/sbin/sayip-node-utils`
+- Install the core library to `/usr/lib/sayip-node-utils/`
 - Install audio files to `/usr/local/share/asterisk/sounds/`
+- Install `/etc/default/sayip` and `/etc/sudoers.d/sayip-node-utils`
 - Create `/etc/asterisk/custom/rpt/sayip.conf` with DTMF commands configured for your node number
 - Enable a systemd service (`allstar-sayip.service`) that announces the local IP on boot
+
+The node number can be supplied at install time via the `NODE_NUMBER` environment variable, debconf, or an interactive prompt.
 
 ### Post-Installation
 
@@ -53,6 +59,28 @@ Use the following DTMF commands from your AllStar node:
 
 ## 🔧 Configuration
 
+### Runtime settings (`/etc/default/sayip`)
+
+Playback timing, sound paths, and local IP filtering can be tuned without editing the script:
+
+| Variable | Purpose |
+|----------|---------|
+| `ASTSND` | Asterisk sound directory for digits and letters |
+| `CUSTOM_SOUNDS` | Directory for package prompt files |
+| `PLAYBACK_PADDING` | Extra seconds added after calculated ulaw playback |
+| `SLEEP_AFTER_INTRO` | Fixed intro delay; `0` derives delay from audio file size |
+| `SKIP_IF_PREFIX` | Comma-separated interface prefixes to skip (docker, veth, etc.) |
+| `PREFER_DEFAULT_ROUTE` | When `yes`, announce the default-route interface IP first |
+| `USER_AGENT` | HTTP User-Agent for public IP lookups |
+
+See `/usr/share/doc/sayip-node-utils/sayip.example` for defaults.
+
+### Halt and reboot permissions
+
+DTMF and the boot service run as the `asterisk` user. The package installs `/etc/sudoers.d/sayip-node-utils`, allowing `asterisk` to run `/usr/sbin/poweroff` and `/usr/sbin/reboot` without a password.
+
+Manual use as root still works directly; non-root manual use requires `sudo`.
+
 ### Changing the Node Number
 
 If you need to change the node number after installation:
@@ -62,7 +90,7 @@ If you need to change the node number after installation:
 3. Reload systemd: `sudo systemctl daemon-reload`
 4. Restart Asterisk: `sudo asterisk -rx "rpt reload"` or `sudo systemctl restart asterisk`
 
-Alternatively, you can reinstall the package with a different node number:
+Alternatively, reinstall with a node number to update both files automatically:
 
 ```bash
 sudo NODE_NUMBER=NEW_NODE_NUMBER dpkg -i sayip-node-utils_1.0.4-1_all.deb
@@ -88,34 +116,39 @@ sudo systemctl enable allstar-sayip.service
 
 ## 🗑️ Uninstall
 
-To completely remove the package:
+To remove the package:
 
 ```bash
 sudo dpkg -r sayip-node-utils
 ```
 
 This will:
-- Remove the `sayip-node-utils` script
+- Remove the `sayip-node-utils` script and library
 - Remove the audio files
-- Remove the systemd service
-- **Note:** The configuration file `/etc/asterisk/custom/rpt/sayip.conf` will be preserved (you may want to remove it manually)
+- Stop and disable the systemd service
+- **Note:** `/etc/asterisk/custom/rpt/sayip.conf` is preserved
 
-To also remove the configuration file:
+To remove package-owned configuration as well:
 
 ```bash
-sudo dpkg -r sayip-node-utils
-sudo rm /etc/asterisk/custom/rpt/sayip.conf
+sudo dpkg --purge sayip-node-utils
+sudo rm -f /etc/asterisk/custom/rpt/sayip.conf
 ```
+
+Purging also removes `/etc/default/sayip` and `/etc/sudoers.d/sayip-node-utils`.
 
 ---
 
 ## 📦 Package Contents
 
-- **Script**: `/usr/sbin/sayip-node-utils` - Main Ruby script for all functionality
+- **Script**: `/usr/sbin/sayip-node-utils` - CLI entry point
+- **Library**: `/usr/lib/sayip-node-utils/utils.rb` - Core logic
 - **Audio Files**: `/usr/local/share/asterisk/sounds/` - Audio prompts (`.ulaw` files)
 - **Configuration**: `/etc/asterisk/custom/rpt/sayip.conf` - DTMF command configuration
+- **Environment**: `/etc/default/sayip` - Runtime tuning
+- **Sudoers**: `/etc/sudoers.d/sayip-node-utils` - Halt/reboot permissions for `asterisk`
 - **Systemd Service**: `/etc/systemd/system/allstar-sayip.service` - Boot-time IP announcement service
-- **Example Config**: `/usr/share/doc/sayip-node-utils/sayip.conf.example` - Example configuration file
+- **Example Config**: `/usr/share/doc/sayip-node-utils/sayip.conf.example` - Example DTMF configuration
 
 ---
 
@@ -131,6 +164,23 @@ sudo /usr/sbin/sayip-node-utils reboot NODE_NUMBER
 ```
 
 Short options are also available: `l`, `p`, `h`, `r` instead of `local`, `public`, `halt`, `reboot`.
+
+Halt and reboot require a valid node number unless `--force` is used (no audio notification):
+
+```bash
+sudo /usr/sbin/sayip-node-utils halt --force
+sudo /usr/sbin/sayip-node-utils reboot --force
+```
+
+---
+
+## 🧪 Development
+
+Run unit tests locally:
+
+```bash
+ruby -Itest test/test_sayip_utils.rb
+```
 
 ---
 

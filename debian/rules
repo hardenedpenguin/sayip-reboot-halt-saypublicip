@@ -9,7 +9,9 @@ override_dh_usrlocal:
 	# Skip dh_usrlocal check - we intentionally install to /usr/local/share/asterisk/sounds
 
 override_dh_auto_install:
-	# Install Ruby script
+	# Install Ruby library and script
+	install -d $(CURDIR)/debian/sayip-node-utils/usr/lib/sayip-node-utils
+	install -m 644 lib/sayip/utils.rb $(CURDIR)/debian/sayip-node-utils/usr/lib/sayip-node-utils/
 	install -d $(CURDIR)/debian/sayip-node-utils/usr/sbin
 	install -m 755 sayip-node-utils.rb $(CURDIR)/debian/sayip-node-utils/usr/sbin/sayip-node-utils
 	# Install audio files
@@ -18,7 +20,12 @@ override_dh_auto_install:
 	# Install example configuration
 	install -d $(CURDIR)/debian/sayip-node-utils/usr/share/doc/sayip-node-utils
 	install -m 644 sayip.conf.example $(CURDIR)/debian/sayip-node-utils/usr/share/doc/sayip-node-utils/
+	install -m 644 etc/default/sayip.example $(CURDIR)/debian/sayip-node-utils/usr/share/doc/sayip-node-utils/
 	# Install systemd service example
 	install -d $(CURDIR)/debian/sayip-node-utils/usr/share/doc/sayip-node-utils/examples
 	install -m 644 debian/allstar-sayip.service $(CURDIR)/debian/sayip-node-utils/usr/share/doc/sayip-node-utils/examples/
-
+	# Install default environment and sudoers template
+	install -d $(CURDIR)/debian/sayip-node-utils/etc/default
+	install -m 644 etc/default/sayip.example $(CURDIR)/debian/sayip-node-utils/etc/default/sayip
+	install -d $(CURDIR)/debian/sayip-node-utils/etc/sudoers.d
+	install -m 440 debian/sayip-node-utils.sudoers $(CURDIR)/debian/sayip-node-utils/etc/sudoers.d/sayip-node-utils

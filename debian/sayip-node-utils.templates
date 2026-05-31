@@ -2,8 +2,7 @@ Template: sayip-node-utils/node-number
 Type: string
 Default: 
 Description: AllStarLink Node Number
- Please enter your AllStarLink node number.
+ Please enter your AllStarLink node number (1-10 digits).
  This will be used to configure the SayIP utilities for your node.
  The node number is typically a 5-6 digit number (e.g., 12345).
  You can change this later by editing /etc/asterisk/custom/rpt/sayip.conf
-

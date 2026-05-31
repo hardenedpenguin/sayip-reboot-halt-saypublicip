@@ -1,0 +1,2 @@
+# Allow the asterisk user to halt/reboot when invoked via DTMF or systemd.
+asterisk ALL=(root) NOPASSWD: /usr/sbin/poweroff, /usr/sbin/reboot

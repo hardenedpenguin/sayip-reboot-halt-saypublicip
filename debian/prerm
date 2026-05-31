@@ -1,7 +1,12 @@
 #!/bin/sh
+set -e
 
 # Prerm script - run before package removal
-# This script should not fail even if debconf is unavailable
+
+if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
+    if [ -f /etc/systemd/system/allstar-sayip.service ]; then
+        systemctl disable --now allstar-sayip.service 2>/dev/null || true
+    fi
+fi
 
 exit 0
-

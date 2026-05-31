@@ -38,7 +38,19 @@ jobs:
             debhelper \
             fakeroot \
             ruby \
+            shellcheck \
             ca-certificates
+
+      - name: Run unit tests
+        run: ruby -Itest test/test_sayip_utils.rb
+
+      - name: Run RuboCop
+        run: |
+          gem install rubocop --no-document
+          rubocop lib/sayip/utils.rb sayip-node-utils.rb test/test_sayip_utils.rb
+
+      - name: Run ShellCheck
+        run: shellcheck debian/postinst debian/postrm debian/prerm debian/config
 
       - name: Compute version
         id: meta
