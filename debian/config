@@ -3,7 +3,27 @@
 # shellcheck disable=SC1091
 . /usr/share/debconf/confmodule
 
-# Ask for node number
-db_input medium sayip-node-utils/node-number || true
-db_go || true
+is_valid_node_number() {
+    echo "$1" | grep -qE '^[0-9]{1,10}$'
+}
 
+node=""
+
+if is_valid_node_number "$NODE_NUMBER"; then
+    node="$NODE_NUMBER"
+elif [ -f /etc/asterisk/custom/rpt/sayip.conf ]; then
+    node="$(grep -E 'sayip-node-utils [lphr] ' /etc/asterisk/custom/rpt/sayip.conf 2>/dev/null \
+        | head -1 \
+        | sed -n 's/.*sayip-node-utils [lphr] \([0-9][0-9]*\).*/\1/p')"
+fi
+
+if is_valid_node_number "$node"; then
+    db_set sayip-node-utils/node-number "$node"
+else
+    db_get sayip-node-utils/node-number || RET=""
+    if ! is_valid_node_number "$RET"; then
+        db_input medium sayip-node-utils/node-number || true
+    fi
+fi
+
+db_go || true

@@ -1,3 +1,10 @@
+sayip-node-utils (1.0.8-1) unstable; urgency=medium
+
+  * Fix node number collection during apt install/reinstall: honor NODE_NUMBER,
+    debconf, and existing sayip.conf; send prompts to stderr not stdout.
+
+ -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sun, 31 May 2026 20:00:00 -0600
+
 sayip-node-utils (1.0.7-1) unstable; urgency=medium
 
   * Add LOCAL_IP_INTERFACE and PREFER_INTERFACES for VPN/local IP selection.
