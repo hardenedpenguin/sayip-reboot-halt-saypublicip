@@ -2,6 +2,8 @@
 set -e
 
 # Postinst script - run after package installation
+# Optional node number from apt/dpkg environment (NODE_NUMBER=12345 apt install ...).
+NODE_NUMBER="${NODE_NUMBER-}"
 
 is_valid_node_number() {
     echo "$1" | grep -qE '^[0-9]{1,10}$'

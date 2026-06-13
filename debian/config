@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Optional node number from apt/dpkg environment (NODE_NUMBER=12345 apt install ...).
+NODE_NUMBER="${NODE_NUMBER-}"
+
 # shellcheck disable=SC1091
 . /usr/share/debconf/confmodule
 
