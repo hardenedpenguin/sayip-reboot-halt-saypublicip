@@ -157,3 +157,9 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
+  publish-apt-repo:
+    needs: build
+    uses: hardenedpenguin/hardenedpenguin-apt/.github/workflows/dispatch-apt-publish.yml@main
+    secrets:
+      APT_REPO_DISPATCH_TOKEN: ${{ secrets.APT_REPO_DISPATCH_TOKEN }}
+
