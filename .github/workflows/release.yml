@@ -43,10 +43,13 @@ jobs:
           sudo gem install rubocop --no-document
 
       - name: Run unit tests
-        run: ruby -Itest test/test_sayip_utils.rb
+        run: |
+          for f in test/test_*.rb; do
+            ruby -Itest "$f"
+          done
 
       - name: Run RuboCop
-        run: rubocop lib/sayip/utils.rb sayip-node-utils.rb test/test_sayip_utils.rb
+        run: rubocop lib/sayip/utils.rb sayip-node-utils.rb test/
 
       - name: Run ShellCheck
         run: shellcheck debian/postinst debian/postrm debian/prerm debian/config
