@@ -61,7 +61,23 @@ Use the following DTMF commands from your AllStar node:
 
 ### Runtime settings (`/etc/default/sayip`)
 
-Playback timing, sound paths, and local IP filtering can be tuned without editing the script:
+Playback timing, sound paths, local IP filtering, and busy-channel behavior are tuned in `/etc/default/sayip`. The package creates this file on first install; upgrades do not overwrite your changes.
+
+**Edit settings:**
+
+```bash
+sudo nano /etc/default/sayip
+```
+
+Use `KEY=value` lines (no `export`). Changes apply on the **next** DTMF command or boot-time announcement — no Asterisk restart is required.
+
+**After upgrading the package**, compare your file with the shipped example for any new options:
+
+```bash
+diff -u /etc/default/sayip /usr/share/doc/sayip-node-utils/sayip.example
+```
+
+Copy only the variables you want to add or change; leave your existing values in place.
 
 | Variable | Purpose |
 |----------|---------|
@@ -94,7 +110,7 @@ PREFER_INTERFACES=wrinkles
 
 Loopback addresses are never announced.
 
-See `/usr/share/doc/sayip-node-utils/sayip.example` for defaults.
+Full defaults and comments: `/usr/share/doc/sayip-node-utils/sayip.example`
 
 ### Halt and reboot permissions
 
