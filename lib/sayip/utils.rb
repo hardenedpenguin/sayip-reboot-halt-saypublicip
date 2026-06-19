@@ -46,8 +46,13 @@ module SayIP
       local_ip_mode: 'default_route',
       local_ip_interface: '',
       prefer_interfaces: [],
-      user_agent: 'sayip-node-utils/1.0'
+      user_agent: 'sayip-node-utils/1.0',
+      busy_check: true,
+      busy_wait_max: 120.0,
+      busy_poll_interval: 0.5
     }.freeze
+
+    XNODE_BUSY_KEYS = %w[RPT_RXKEYED RPT_TXKEYED RPT_ETXKEYED XX_RPT_RXKEYED].freeze
 
     def self.default
       @default ||= new
@@ -94,6 +99,54 @@ module SayIP
       ok
     end
 
+    def asterisk_capture(cmd)
+      IO.popen(['asterisk', '-rx', cmd], err: File::NULL, &:read)
+    rescue StandardError => e
+      warn "Warning: Asterisk command failed: #{cmd}: #{e.message}"
+      ''
+    end
+
+    def node_channel_busy?(node)
+      xnode = asterisk_capture("rpt xnode #{node}")
+      return false if xnode.empty?
+
+      return true if xnode_busy?(xnode)
+      return true if stats_busy?(asterisk_capture("rpt stats #{node}"))
+
+      false
+    end
+
+    def ensure_channel_idle(node)
+      return true unless busy_check_enabled?
+
+      max_wait = @config[:busy_wait_max]
+      interval = @config[:busy_poll_interval]
+      waited = 0.0
+      warned = false
+
+      loop do
+        return true unless node_channel_busy?(node)
+
+        if max_wait <= 0
+          warn "Warning: Node #{node} channel busy; skipping IP announcement"
+          return false
+        end
+
+        unless warned
+          warn "Warning: Node #{node} channel busy; waiting up to #{max_wait}s for idle"
+          warned = true
+        end
+
+        if waited >= max_wait
+          warn "Warning: Node #{node} still busy after #{max_wait}s; skipping IP announcement"
+          return false
+        end
+
+        sleep(interval)
+        waited += interval
+      end
+    end
+
     def play_audio(node, audio_path)
       unless asterisk_cmd("rpt localplay #{node} #{audio_path}")
         warn "Warning: Failed to play audio #{audio_path} on node #{node}"
@@ -123,6 +176,8 @@ module SayIP
         exit 1
       end
 
+      return unless ensure_channel_idle(node)
+
       warn 'Warning: Intro audio failed; continuing with IP announcement' unless play_audio(node, LOCAL_AUDIO_FILE)
       wait_for_playback(LOCAL_AUDIO_FILE)
 
@@ -142,6 +197,8 @@ module SayIP
         $stderr.puts "Usage: #{program_name} public <node_number>"
         exit 1
       end
+
+      return unless ensure_channel_idle(node)
 
       ip = get_public_ip
       unless ip
@@ -229,7 +286,39 @@ module SayIP
         config[:local_ip_mode] = 'all' unless %w[yes true 1].include?(value.downcase)
       when 'USER_AGENT'
         config[:user_agent] = value
+      when 'BUSY_CHECK'
+        config[:busy_check] = truthy?(value)
+      when 'BUSY_WAIT_MAX'
+        config[:busy_wait_max] = value.to_f
+      when 'BUSY_POLL_INTERVAL'
+        config[:busy_poll_interval] = value.to_f
       end
+    end
+
+    def truthy?(value)
+      %w[1 yes true on].include?(value.downcase)
+    end
+
+    def busy_check_enabled?
+      @config[:busy_check]
+    end
+
+    def xnode_busy?(output)
+      XNODE_BUSY_KEYS.any? { |key| xnode_keyed?(output, key) }
+    end
+
+    def xnode_keyed?(output, key)
+      match = output.match(/^#{Regexp.escape(key)}=(\d+)/)
+      match && match[1] == '1'
+    end
+
+    def stats_busy?(output)
+      return false if output.empty?
+
+      return true if output.match?(/Signal on input\.+: YES/)
+      return true if output.match?(/Identifier state\.+: (?!CLEAN\b)/)
+
+      false
     end
 
     def parse_skip_prefixes(value)

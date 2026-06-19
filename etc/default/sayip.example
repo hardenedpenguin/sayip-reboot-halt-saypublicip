@@ -33,3 +33,13 @@ PREFER_INTERFACES=
 
 # User-Agent header for public IP HTTP lookups.
 USER_AGENT=sayip-node-utils/1.0
+
+# Skip IP announcements while the repeater is busy (RF, ID, or telemetry TX).
+# Uses rpt xnode/stats keyed and identifier state before localplay.
+BUSY_CHECK=yes
+
+# Seconds to wait for an idle channel before skipping; 0 = skip immediately if busy.
+BUSY_WAIT_MAX=120
+
+# Poll interval while waiting for the channel to clear.
+BUSY_POLL_INTERVAL=0.5

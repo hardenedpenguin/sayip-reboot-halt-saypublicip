@@ -1,3 +1,10 @@
+sayip-node-utils (1.0.9-1) unstable; urgency=medium
+
+  * Defer or skip IP announcements when the repeater channel is busy (RF,
+    ID, or telemetry) using rpt xnode/stats before localplay.
+
+ -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sun, 31 May 2026 22:00:00 -0600
+
 sayip-node-utils (1.0.8-2) unstable; urgency=medium
 
   * Fix ShellCheck SC2153 for optional NODE_NUMBER install environment variable.

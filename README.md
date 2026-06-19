@@ -74,6 +74,11 @@ Playback timing, sound paths, and local IP filtering can be tuned without editin
 | `LOCAL_IP_INTERFACE` | Announce only this interface (overrides other local IP settings) |
 | `PREFER_INTERFACES` | Comma-separated interfaces to try before `LOCAL_IP_MODE` fallback |
 | `USER_AGENT` | HTTP User-Agent for public IP lookups |
+| `BUSY_CHECK` | `yes`/`no` — skip or defer IP announcements when the repeater is busy |
+| `BUSY_WAIT_MAX` | Seconds to wait for idle channel before skipping (`0` = skip immediately if busy) |
+| `BUSY_POLL_INTERVAL` | Seconds between busy checks while waiting |
+
+Before announcing local or public IP, the script checks `rpt xnode` and `rpt stats` for RF activity, transmitter activity, and queued ID/telemetry. If the channel is busy, it waits up to `BUSY_WAIT_MAX` seconds (default 120) for the repeater to finish ID or transmission, then skips the announcement if still busy. Set `BUSY_CHECK=no` to restore the previous always-announce behavior.
 
 `LOCAL_IP_MODE=default_route` follows the kernel default route. If your default route is `wlan0` but you reach the node over a VPN such as `wrinkles`, set either:
 
