@@ -10,12 +10,31 @@ IPv4 is supported for IP discovery and announcement. IPv6 addresses are intentio
 
 ## 🔧 Installation
 
-Download and install the package with your node number:
+Packages are published in the [hardenedpenguin APT repository](https://github.com/hardenedpenguin/hardenedpenguin-apt). One-time setup:
 
 ```bash
-wget https://github.com/hardenedpenguin/sayip-reboot-halt-saypublicip/releases/download/v1.0.9-2/sayip-node-utils_1.0.9-2_all.deb
-sudo NODE_NUMBER=12345 dpkg -i sayip-node-utils_1.0.9-2_all.deb
+cd /tmp
+curl -fsSLO https://hardenedpenguin.github.io/hardenedpenguin-apt/pool/main/h/hardenedpenguin-archive-keyring/hardenedpenguin-archive-keyring_1.0_all.deb
+sudo apt install ./hardenedpenguin-archive-keyring_1.0_all.deb
+sudo apt update
 ```
+
+The keyring package adds the GPG signing key and `/etc/apt/sources.list.d/hardenedpenguin.list`.
+
+Install **sayip-node-utils** (replace `12345` with your AllStarLink node number):
+
+```bash
+sudo NODE_NUMBER=12345 apt install sayip-node-utils
+```
+
+On an interactive install, debconf may prompt for the node number instead. Upgrades reuse the node number from your existing `sayip.conf` — you do not need to pass `NODE_NUMBER` again:
+
+```bash
+sudo apt update
+sudo apt upgrade sayip-node-utils
+```
+
+### What gets installed
 
 This will:
 - Install the `sayip-node-utils` Ruby script to `/usr/sbin/sayip-node-utils`
@@ -130,7 +149,7 @@ If you need to change the node number after installation:
 Alternatively, reinstall with a node number to update both files automatically:
 
 ```bash
-sudo NODE_NUMBER=NEW_NODE_NUMBER dpkg -i sayip-node-utils_1.0.9-2_all.deb
+sudo NODE_NUMBER=NEW_NODE_NUMBER apt install --reinstall sayip-node-utils
 ```
 
 ---
@@ -156,7 +175,7 @@ sudo systemctl enable allstar-sayip.service
 To remove the package:
 
 ```bash
-sudo dpkg -r sayip-node-utils
+sudo apt remove sayip-node-utils
 ```
 
 This will:
@@ -168,7 +187,7 @@ This will:
 To remove package-owned configuration as well:
 
 ```bash
-sudo dpkg --purge sayip-node-utils
+sudo apt purge sayip-node-utils
 sudo rm -f /etc/asterisk/custom/rpt/sayip.conf
 ```
 
