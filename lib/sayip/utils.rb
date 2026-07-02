@@ -53,6 +53,7 @@ module SayIP
     }.freeze
 
     XNODE_BUSY_KEYS = %w[RPT_RXKEYED RPT_TXKEYED RPT_ETXKEYED XX_RPT_RXKEYED].freeze
+    MIN_BUSY_POLL_INTERVAL = 0.1
 
     def self.default
       @default ||= new
@@ -107,38 +108,43 @@ module SayIP
     end
 
     def node_channel_busy?(node)
-      xnode = asterisk_capture("rpt xnode #{node}")
-      return false if xnode.empty?
-
-      return true if xnode_busy?(xnode)
-      return true if stats_busy?(asterisk_capture("rpt stats #{node}"))
-
-      false
+      query_channel_status(node) == :busy
     end
 
     def ensure_channel_idle(node)
       return true unless busy_check_enabled?
 
       max_wait = @config[:busy_wait_max]
-      interval = @config[:busy_poll_interval]
+      interval = busy_poll_interval
       waited = 0.0
-      warned = false
+      warned_busy = false
+      warned_unknown = false
 
       loop do
-        return true unless node_channel_busy?(node)
+        status = query_channel_status(node)
+
+        case status
+        when :idle
+          return true
+        when :busy
+          unless warned_busy
+            warn "Warning: Node #{node} channel busy; waiting up to #{max_wait}s for idle"
+            warned_busy = true
+          end
+        when :unknown
+          unless warned_unknown
+            warn "Warning: Could not query node #{node} channel status; waiting for Asterisk"
+            warned_unknown = true
+          end
+        end
 
         if max_wait <= 0
-          warn "Warning: Node #{node} channel busy; skipping IP announcement"
+          warn channel_skip_message(node, status)
           return false
         end
 
-        unless warned
-          warn "Warning: Node #{node} channel busy; waiting up to #{max_wait}s for idle"
-          warned = true
-        end
-
         if waited >= max_wait
-          warn "Warning: Node #{node} still busy after #{max_wait}s; skipping IP announcement"
+          warn "Warning: Node #{node} channel not ready after #{max_wait}s; skipping IP announcement"
           return false
         end
 
@@ -301,6 +307,31 @@ module SayIP
 
     def busy_check_enabled?
       @config[:busy_check]
+    end
+
+    def busy_poll_interval
+      [@config[:busy_poll_interval].to_f, MIN_BUSY_POLL_INTERVAL].max
+    end
+
+    def query_channel_status(node)
+      xnode = asterisk_capture("rpt xnode #{node}")
+      return :unknown if xnode.empty?
+
+      return :busy if xnode_busy?(xnode)
+
+      stats = asterisk_capture("rpt stats #{node}")
+      return :busy if stats_busy?(stats)
+
+      :idle
+    end
+
+    def channel_skip_message(node, status)
+      case status
+      when :unknown
+        "Warning: Could not query node #{node} channel status; skipping IP announcement"
+      else
+        "Warning: Node #{node} channel busy; skipping IP announcement"
+      end
     end
 
     def xnode_busy?(output)

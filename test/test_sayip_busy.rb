@@ -35,7 +35,7 @@ class SayIPBusyTest < Minitest::Test
   def test_ensure_channel_idle_skips_immediately_when_busy_and_no_wait
     utils = SayIP::Utils.new(busy_check: true, busy_wait_max: 0.0, busy_poll_interval: 0.1)
 
-    utils.stub(:node_channel_busy?, true) do
+    utils.stub(:query_channel_status, :busy) do
       refute utils.ensure_channel_idle('546052')
     end
   end
@@ -44,12 +44,12 @@ class SayIPBusyTest < Minitest::Test
     utils = SayIP::Utils.new(busy_check: true, busy_wait_max: 2.0, busy_poll_interval: 0.05)
     checks = 0
 
-    busy_proc = proc do
+    status_proc = proc do
       checks += 1
-      checks < 3
+      checks < 3 ? :busy : :idle
     end
 
-    utils.stub(:node_channel_busy?, busy_proc) do
+    utils.stub(:query_channel_status, status_proc) do
       assert utils.ensure_channel_idle('546052')
     end
 
@@ -62,5 +62,24 @@ class SayIPBusyTest < Minitest::Test
     utils.stub(:node_channel_busy?, true) do
       assert utils.ensure_channel_idle('546052')
     end
+  end
+
+  def test_query_channel_status_unknown_when_xnode_empty
+    @utils.stub(:asterisk_capture, '') do
+      assert_equal :unknown, @utils.send(:query_channel_status, '546052')
+    end
+  end
+
+  def test_ensure_channel_idle_skips_when_status_unknown_and_no_wait
+    utils = SayIP::Utils.new(busy_check: true, busy_wait_max: 0.0, busy_poll_interval: 0.1)
+
+    utils.stub(:query_channel_status, :unknown) do
+      refute utils.ensure_channel_idle('546052')
+    end
+  end
+
+  def test_busy_poll_interval_clamps_to_minimum
+    utils = SayIP::Utils.new(busy_poll_interval: 0.0)
+    assert_in_delta 0.1, utils.send(:busy_poll_interval), 0.001
   end
 end

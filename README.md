@@ -235,7 +235,7 @@ sudo /usr/sbin/sayip-node-utils reboot --force
 Run unit tests locally:
 
 ```bash
-ruby -Itest test/test_sayip_utils.rb
+for f in test/test_*.rb; do ruby -Itest "$f"; done
 ```
 
 ---

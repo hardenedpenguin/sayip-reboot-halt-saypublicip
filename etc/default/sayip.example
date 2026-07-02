@@ -41,5 +41,5 @@ BUSY_CHECK=yes
 # Seconds to wait for an idle channel before skipping; 0 = skip immediately if busy.
 BUSY_WAIT_MAX=120
 
-# Poll interval while waiting for the channel to clear.
+# Poll interval while waiting for the channel to clear (minimum 0.1 seconds).
 BUSY_POLL_INTERVAL=0.5
