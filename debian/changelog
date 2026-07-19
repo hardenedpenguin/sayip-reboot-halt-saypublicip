@@ -1,3 +1,12 @@
+sayip-node-utils (1.0.11-1) unstable; urgency=medium
+
+  * Fix postinst never creating the systemd service: sourcing the debconf
+    confmodule inside a function re-executed the script without the
+    "configure" argument, silently skipping all setup. Source it once at
+    top level instead.
+
+ -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sun, 19 Jul 2026 13:45:00 -0500
+
 sayip-node-utils (1.0.10-1) unstable; urgency=medium
 
   * Skip IP announcements when Asterisk channel status cannot be queried.

@@ -5,6 +5,15 @@ set -e
 # Optional node number from apt/dpkg environment (NODE_NUMBER=12345 apt install ...).
 NODE_NUMBER="${NODE_NUMBER-}"
 
+# Sourcing confmodule re-execs this script under the debconf frontend, so it
+# must happen at top level where "$@" still holds the script's arguments.
+# Sourcing it inside a function would re-exec with the function's arguments,
+# silently skipping the "configure" branch below.
+if [ -f /usr/share/debconf/confmodule ]; then
+    # shellcheck disable=SC1091
+    . /usr/share/debconf/confmodule
+fi
+
 is_valid_node_number() {
     echo "$1" | grep -qE '^[0-9]{1,10}$'
 }
@@ -30,11 +39,9 @@ remember_node_number() {
     node_number="$1"
 
     [ -n "$node_number" ] || return 0
-    [ -f /usr/share/debconf/confmodule ] || return 0
+    command -v db_set >/dev/null 2>&1 || return 0
 
-    # shellcheck disable=SC1091
-    . /usr/share/debconf/confmodule 2>/dev/null || return 0
-    db_set sayip-node-utils/node-number "$node_number" 2>/dev/null || true
+    db_set sayip-node-utils/node-number "$node_number" || true
 }
 
 get_node_number() {
@@ -45,10 +52,8 @@ get_node_number() {
         return 0
     fi
 
-    if [ -f /usr/share/debconf/confmodule ]; then
-        # shellcheck disable=SC1091
-        . /usr/share/debconf/confmodule 2>/dev/null || true
-        if db_get sayip-node-utils/node-number 2>/dev/null && is_valid_node_number "$RET"; then
+    if command -v db_get >/dev/null 2>&1; then
+        if db_get sayip-node-utils/node-number && is_valid_node_number "$RET"; then
             echo "$RET"
             return 0
         fi
