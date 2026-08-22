@@ -38,10 +38,11 @@ sudo apt upgrade sayip-node-utils
 
 This will:
 - Install the `sayip-node-utils` Ruby script to `/usr/sbin/sayip-node-utils`
-- Install the core library to `/usr/lib/sayip-node-utils/`
+- Install the core library and `configure-rpt-sayip.sh` to `/usr/lib/sayip-node-utils/`
 - Install audio files to `/usr/local/share/asterisk/sounds/`
 - Install `/etc/default/sayip` and `/etc/sudoers.d/sayip-node-utils`
-- Create `/etc/asterisk/custom/rpt/sayip.conf` with DTMF commands configured for your node number
+- Create `/etc/asterisk/custom/rpt/sayip.conf` with DTMF commands for your node (existing customized files are left alone unless the node number changes)
+- Update `/etc/asterisk/rpt.conf` so `functions`, `phone_functions`, and `link_functions` use your node's SayIP function table (needed for IAX/phone DTMF)
 - Enable a systemd service (`allstar-sayip.service`) that announces the local IP on boot
 
 The node number can be supplied at install time via the `NODE_NUMBER` environment variable, debconf, or an interactive prompt.
@@ -50,16 +51,18 @@ The node number can be supplied at install time via the `NODE_NUMBER` environmen
 
 After installation:
 
-1. **Run the ASL menu** and enable the DTMF commands in the **Customization** menu:
+1. **Reload app_rpt** so DTMF and `rpt.conf` changes take effect:
    ```bash
-   asl-menu
+   sudo asterisk -rx "rpt reload"
    ```
-   In the menu, go to **Customization** and enable the DTMF commands for this package.
 
-2. **Restart Asterisk** so the configuration takes effect:
+   If the node stanza did not exist yet when the package was installed, add the node with `asl-menu`, then either reinstall or run:
    ```bash
-   sudo systemctl restart asterisk
+   sudo /usr/lib/sayip-node-utils/configure-rpt-sayip.sh YOUR_NODE_NUMBER
+   sudo asterisk -rx "rpt reload"
    ```
+
+2. Optional: use **asl-menu → Customization** if you prefer managing other custom function packs there; SayIP wiring is applied by the package itself.
 
 ---
 

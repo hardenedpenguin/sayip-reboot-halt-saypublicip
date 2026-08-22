@@ -9,9 +9,10 @@ override_dh_usrlocal:
 	# Skip dh_usrlocal check - we intentionally install to /usr/local/share/asterisk/sounds
 
 override_dh_auto_install:
-	# Install Ruby library and script
+	# Install Ruby library, rpt.conf helper, and script
 	install -d $(CURDIR)/debian/sayip-node-utils/usr/lib/sayip-node-utils
 	install -m 644 lib/sayip/utils.rb $(CURDIR)/debian/sayip-node-utils/usr/lib/sayip-node-utils/
+	install -m 755 debian/configure-rpt-sayip.sh $(CURDIR)/debian/sayip-node-utils/usr/lib/sayip-node-utils/
 	install -d $(CURDIR)/debian/sayip-node-utils/usr/sbin
 	install -m 755 sayip-node-utils.rb $(CURDIR)/debian/sayip-node-utils/usr/sbin/sayip-node-utils
 	# Install audio files

@@ -1,3 +1,12 @@
+sayip-node-utils (1.0.12-1) unstable; urgency=medium
+
+  * Wire SayIP into rpt.conf on install: ensure custom/rpt includes,
+    functions-sayip inheritance, and phone_functions/link_functions for
+    the configured node (fixes IAX/phone DTMF).
+  * Do not overwrite an existing sayip.conf unless the node number changed.
+
+ -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 22 Aug 2026 18:30:00 -0500
+
 sayip-node-utils (1.0.11-1) unstable; urgency=medium
 
   * Fix postinst never creating the systemd service: sourcing the debconf

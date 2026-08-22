@@ -12,3 +12,7 @@ debian/sayip-node-utils/
 *.dsc
 *.tar.*
 *.upload
+
+# Local build / APT scratch dirs
+apt/
+dist/

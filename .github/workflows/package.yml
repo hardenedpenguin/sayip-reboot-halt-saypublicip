@@ -33,7 +33,7 @@ jobs:
         run: rubocop lib/sayip/utils.rb sayip-node-utils.rb test/
 
       - name: Run ShellCheck
-        run: shellcheck debian/postinst debian/postrm debian/prerm debian/config
+        run: shellcheck debian/postinst debian/postrm debian/prerm debian/config debian/configure-rpt-sayip.sh
 
   build:
     runs-on: ubuntu-latest

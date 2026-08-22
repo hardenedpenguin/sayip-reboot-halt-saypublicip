@@ -83,12 +83,32 @@ get_node_number() {
     return 1
 }
 
+sayip_conf_node() {
+    extract_node_from_sayip_conf 2>/dev/null || true
+}
+
 install_sayip_conf() {
     node_number="$1"
+    force="${2:-}"
     example="/usr/share/doc/sayip-node-utils/sayip.conf.example"
     target="/etc/asterisk/custom/rpt/sayip.conf"
 
     mkdir -p /etc/asterisk/custom/rpt
+
+    if [ -f "$target" ] && [ "$force" != "force" ]; then
+        existing="$(sayip_conf_node)"
+        if [ -n "$node_number" ] && [ "$existing" = "$node_number" ]; then
+            echo "Configuration file $target already matches node $node_number; leaving unchanged."
+            return 0
+        fi
+        if [ -z "$node_number" ]; then
+            echo "Configuration file $target already exists; leaving unchanged."
+            return 0
+        fi
+        if [ -n "$existing" ] && [ "$existing" != "$node_number" ]; then
+            echo "Updating $target for node change ($existing -> $node_number)."
+        fi
+    fi
 
     if [ -n "$node_number" ]; then
         sed "s/\$NODE/$node_number/g" "$example" > "$target"
@@ -98,6 +118,19 @@ install_sayip_conf() {
 
     chmod 0644 "$target"
     chown asterisk:asterisk "$target" 2>/dev/null || true
+}
+
+configure_rpt_for_sayip() {
+    node_number="$1"
+    helper="/usr/lib/sayip-node-utils/configure-rpt-sayip.sh"
+
+    [ -n "$node_number" ] || return 0
+    [ -x "$helper" ] || return 0
+
+    "$helper" "$node_number" || {
+        echo "Warning: Failed to update /etc/asterisk/rpt.conf for node $node_number"
+        return 0
+    }
 }
 
 install_systemd_service() {
@@ -139,10 +172,15 @@ if [ "$1" = "configure" ]; then
     fi
 
     if [ -n "$node_number" ]; then
-        install_sayip_conf "$node_number"
-        echo "Configuration file updated at /etc/asterisk/custom/rpt/sayip.conf"
+        if [ ! -f /etc/asterisk/custom/rpt/sayip.conf ]; then
+            install_sayip_conf "$node_number" force
+            echo "Configuration file created at /etc/asterisk/custom/rpt/sayip.conf"
+        else
+            install_sayip_conf "$node_number"
+        fi
+        configure_rpt_for_sayip "$node_number"
     elif [ ! -f /etc/asterisk/custom/rpt/sayip.conf ]; then
-        install_sayip_conf ""
+        install_sayip_conf "" force
         echo "Configuration file created at /etc/asterisk/custom/rpt/sayip.conf (set node number and reinstall)"
     else
         echo "Leaving existing /etc/asterisk/custom/rpt/sayip.conf unchanged (no node number available)."
