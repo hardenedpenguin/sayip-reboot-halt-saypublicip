@@ -52,7 +52,10 @@ module SayIP
       busy_poll_interval: 0.5
     }.freeze
 
-    XNODE_BUSY_KEYS = %w[RPT_RXKEYED RPT_TXKEYED RPT_ETXKEYED XX_RPT_RXKEYED].freeze
+    # Only RX keyed means someone is talking into the node. Do not treat
+    # RPT_TXKEYED/ETXKEYED as busy: hangtime and linked remote traffic keep TX
+    # up and would block *A1/*A3 forever on a connected node.
+    XNODE_BUSY_KEYS = %w[RPT_RXKEYED XX_RPT_RXKEYED].freeze
     MIN_BUSY_POLL_INTERVAL = 0.1
 
     def self.default

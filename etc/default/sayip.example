@@ -34,8 +34,9 @@ PREFER_INTERFACES=
 # User-Agent header for public IP HTTP lookups.
 USER_AGENT=sayip-node-utils/1.0
 
-# Skip IP announcements while the repeater is busy (RF, ID, or telemetry TX).
-# Uses rpt xnode/stats keyed and identifier state before localplay.
+# Skip IP announcements while the receiver is busy (local RF COS/RX keyed)
+# or an ID/telemetry is queued. Uses rpt xnode/stats before localplay.
+# TX keyed alone (hangtime or linked remote traffic) is NOT treated as busy.
 BUSY_CHECK=yes
 
 # Seconds to wait for an idle channel before skipping; 0 = skip immediately if busy.

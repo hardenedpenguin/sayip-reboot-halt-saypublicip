@@ -17,6 +17,12 @@ class SayIPBusyTest < Minitest::Test
     assert @utils.send(:xnode_busy?, output)
   end
 
+  def test_xnode_not_busy_when_only_tx_keyed
+    # Linked remote traffic / hangtime keys TX but must not block IP announce.
+    output = "RPT_RXKEYED=0\nRPT_TXKEYED=1\nRPT_ETXKEYED=1\n"
+    refute @utils.send(:xnode_busy?, output)
+  end
+
   def test_xnode_not_busy_when_all_clear
     output = "RPT_RXKEYED=0\nRPT_TXKEYED=0\nRPT_ETXKEYED=0\n"
     refute @utils.send(:xnode_busy?, output)
