@@ -53,13 +53,13 @@ After installation:
 
 1. **Reload app_rpt** so DTMF and `rpt.conf` changes take effect:
    ```bash
-   sudo asterisk -rx "rpt reload"
+   sudo asterisk -rx "module reload app_rpt.so"
    ```
 
    If the node stanza did not exist yet when the package was installed, add the node with `asl-menu`, then either reinstall or run:
    ```bash
    sudo /usr/lib/sayip-node-utils/configure-rpt-sayip.sh YOUR_NODE_NUMBER
-   sudo asterisk -rx "rpt reload"
+   sudo asterisk -rx "module reload app_rpt.so"
    ```
 
 2. Optional: use **asl-menu → Customization** if you prefer managing other custom function packs there; SayIP wiring is applied by the package itself.
@@ -147,7 +147,7 @@ If you need to change the node number after installation:
 1. Edit `/etc/asterisk/custom/rpt/sayip.conf` and replace the node number in the DTMF commands
 2. Edit `/etc/systemd/system/allstar-sayip.service` and update the node number in the `ExecStart` line
 3. Reload systemd: `sudo systemctl daemon-reload`
-4. Restart Asterisk: `sudo asterisk -rx "rpt reload"` or `sudo systemctl restart asterisk`
+4. Reload app_rpt: `sudo asterisk -rx "module reload app_rpt.so"` or `sudo systemctl restart asterisk`
 
 Alternatively, reinstall with a node number to update both files automatically:
 

@@ -1,3 +1,10 @@
+sayip-node-utils (1.0.12-2) unstable; urgency=medium
+
+  * Document the correct ASL3 reload command: module reload app_rpt.so
+    (rpt reload is not a valid Asterisk CLI command).
+
+ -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 22 Aug 2026 19:10:00 -0500
+
 sayip-node-utils (1.0.12-1) unstable; urgency=medium
 
   * Wire SayIP into rpt.conf on install: ensure custom/rpt includes,

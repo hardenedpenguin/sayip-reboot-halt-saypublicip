@@ -208,6 +208,6 @@ trap - EXIT
 rm -f "$stage1"
 
 echo "Updated $rpt for node $node (functions, phone_functions, link_functions)."
-echo "Reload Asterisk when ready: sudo asterisk -rx \"rpt reload\""
+echo "Reload Asterisk when ready: sudo asterisk -rx \"module reload app_rpt.so\""
 
 exit 0
