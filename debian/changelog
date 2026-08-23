@@ -3,9 +3,14 @@ sayip-node-utils (1.0.12-1) unstable; urgency=medium
   * Wire SayIP into rpt.conf on install: ensure custom/rpt includes,
     functions-sayip inheritance, and phone_functions/link_functions for
     the configured node (fixes IAX/phone DTMF).
-  * Do not overwrite an existing sayip.conf unless the node number changed.
+  * Do not overwrite an existing sayip.conf unless the node number changed;
+    leave unrecognized existing configs alone unless force is set.
+  * On node-number change, unwire functions-sayip from the previous node's
+    function table before configuring the new node.
+  * Stage rpt.conf rewrites and apply mode/ownership to the staged file
+    before replacing, so metadata failures leave the original untouched.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 22 Aug 2026 18:30:00 -0500
+ -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 22 Aug 2026 19:05:00 -0500
 
 sayip-node-utils (1.0.11-1) unstable; urgency=medium
 

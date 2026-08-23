@@ -4,13 +4,20 @@
 #   - ensure [functions-NODE] inherits functions-sayip
 #   - set functions / phone_functions / link_functions on [NODE]
 #     (IAX phone-mode DTMF uses phone_functions, not functions)
+#   - optional --unwire NODE removes functions-sayip from that node's table
 set -e
+
+unwire=0
+if [ "${1-}" = "--unwire" ]; then
+    unwire=1
+    shift
+fi
 
 node="$1"
 rpt="${RPT_CONF:-/etc/asterisk/rpt.conf}"
 
 if [ -z "$node" ]; then
-    echo "Usage: configure-rpt-sayip.sh <node_number>" >&2
+    echo "Usage: configure-rpt-sayip.sh [--unwire] <node_number>" >&2
     exit 1
 fi
 
@@ -24,20 +31,54 @@ if [ ! -f "$rpt" ]; then
     exit 0
 fi
 
-if ! grep -qE "^\[${node}\]" "$rpt"; then
+if [ "$unwire" -eq 0 ] && ! grep -qE "^\[${node}\]" "$rpt"; then
     echo "Warning: Node [$node] not found in $rpt; skipping repeater setup."
     echo "Add the node with asl-menu first, then reinstall or run:"
     echo "  sudo /usr/lib/sayip-node-utils/configure-rpt-sayip.sh $node"
     exit 0
 fi
 
-fn="functions-${node}"
-tmp="$(mktemp "${rpt}.sayip.XXXXXX")"
-trap 'rm -f "$tmp"' EXIT
+# Preserve original mode/owner across atomic replacement.
+rpt_mode="$(stat -c '%a' "$rpt" 2>/dev/null || echo 644)"
+rpt_uid="$(stat -c '%u' "$rpt" 2>/dev/null || echo 0)"
+rpt_gid="$(stat -c '%g' "$rpt" 2>/dev/null || echo 0)"
 
-# Ensure ASL3 custom rpt includes exist before any node-related stanzas.
-# Asterisk resolves template parents at parse time, so includes must precede
-# [functions-NODE] / [NODE] that inherit from functions-sayip.
+fn="functions-${node}"
+stage1="$(mktemp "${rpt}.sayip.XXXXXX")"
+stage2="$(mktemp "${rpt}.sayip.XXXXXX")"
+trap 'rm -f "$stage1" "$stage2"' EXIT
+
+if [ "$unwire" -eq 1 ]; then
+    # Strip functions-sayip from [functions-NODE] inheritance only.
+    awk -v fn="$fn" '
+    BEGIN { fn_re = "^\\[" fn "\\]" }
+    {
+        line = $0
+        if (line ~ fn_re && line ~ /functions-sayip/) {
+            # ",functions-sayip)" or "(functions-sayip," or ",functions-sayip,"
+            gsub(/,functions-sayip/, "", line)
+            gsub(/\(functions-sayip,/, "(", line)
+            gsub(/\(functions-sayip\)/, "", line)
+            # If inheritance list became empty, leave a bare stanza header.
+            if (line ~ /^\[[^]]+\]\(\)$/) {
+                sub(/\(\)$/, "", line)
+            }
+        }
+        print line
+    }
+    ' "$rpt" > "$stage2"
+
+    chmod "$rpt_mode" "$stage2"
+    chown "$rpt_uid:$rpt_gid" "$stage2"
+    mv "$stage2" "$rpt"
+    trap - EXIT
+    rm -f "$stage1"
+    echo "Removed functions-sayip inheritance from $fn in $rpt (if present)."
+    exit 0
+fi
+
+# Stage 1: ensure ASL3 custom rpt includes exist before node-related stanzas.
+# Keep the result in stage1; do not replace rpt.conf until stage 2 succeeds.
 awk '
 BEGIN {
     has_rpt = 0
@@ -64,12 +105,9 @@ END {
         if (!has_glob) print "#tryinclude \"custom/rpt/*.conf\""
     }
 }
-' "$rpt" > "$tmp"
+' "$rpt" > "$stage1"
 
-mv "$tmp" "$rpt"
-tmp="$(mktemp "${rpt}.sayip.XXXXXX")"
-trap 'rm -f "$tmp"' EXIT
-
+# Stage 2: wire function table + phone/link overrides, reading staged stage1.
 awk -v node="$node" -v fn="$fn" '
 BEGIN {
     node_re = "^\\[" node "\\]"
@@ -159,12 +197,15 @@ END {
         emit_node_overrides()
     }
 }
-' "$rpt" > "$tmp"
+' "$stage1" > "$stage2"
 
-mv "$tmp" "$rpt"
+# Apply metadata to the staged file first; only replace rpt.conf if that succeeds
+# so a chmod/chown failure leaves the original untouched.
+chmod "$rpt_mode" "$stage2"
+chown "$rpt_uid:$rpt_gid" "$stage2"
+mv "$stage2" "$rpt"
 trap - EXIT
-chmod 0644 "$rpt"
-chown asterisk:asterisk "$rpt" 2>/dev/null || true
+rm -f "$stage1"
 
 echo "Updated $rpt for node $node (functions, phone_functions, link_functions)."
 echo "Reload Asterisk when ready: sudo asterisk -rx \"rpt reload\""

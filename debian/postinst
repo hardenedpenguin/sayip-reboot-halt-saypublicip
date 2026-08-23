@@ -87,26 +87,35 @@ sayip_conf_node() {
     extract_node_from_sayip_conf 2>/dev/null || true
 }
 
+# Prints previous node on stdout when sayip.conf will be rewritten for a
+# node-number change; otherwise prints nothing. Exit 0 means proceed to write.
 install_sayip_conf() {
     node_number="$1"
     force="${2:-}"
     example="/usr/share/doc/sayip-node-utils/sayip.conf.example"
     target="/etc/asterisk/custom/rpt/sayip.conf"
+    previous=""
 
     mkdir -p /etc/asterisk/custom/rpt
 
     if [ -f "$target" ] && [ "$force" != "force" ]; then
         existing="$(sayip_conf_node)"
         if [ -n "$node_number" ] && [ "$existing" = "$node_number" ]; then
-            echo "Configuration file $target already matches node $node_number; leaving unchanged."
-            return 0
+            echo "Configuration file $target already matches node $node_number; leaving unchanged." >&2
+            return 1
         fi
         if [ -z "$node_number" ]; then
-            echo "Configuration file $target already exists; leaving unchanged."
-            return 0
+            echo "Configuration file $target already exists; leaving unchanged." >&2
+            return 1
         fi
-        if [ -n "$existing" ] && [ "$existing" != "$node_number" ]; then
-            echo "Updating $target for node change ($existing -> $node_number)."
+        # Unrecognized/empty node in existing file: do not clobber unless forced.
+        if [ -z "$existing" ]; then
+            echo "Configuration file $target exists but node number is unrecognized; leaving unchanged." >&2
+            return 1
+        fi
+        if [ "$existing" != "$node_number" ]; then
+            echo "Updating $target for node change ($existing -> $node_number)." >&2
+            previous="$existing"
         fi
     fi
 
@@ -118,6 +127,24 @@ install_sayip_conf() {
 
     chmod 0644 "$target"
     chown asterisk:asterisk "$target" 2>/dev/null || true
+
+    if [ -n "$previous" ]; then
+        echo "$previous"
+    fi
+    return 0
+}
+
+unwire_rpt_for_sayip() {
+    old_node="$1"
+    helper="/usr/lib/sayip-node-utils/configure-rpt-sayip.sh"
+
+    [ -n "$old_node" ] || return 0
+    [ -x "$helper" ] || return 0
+
+    "$helper" --unwire "$old_node" || {
+        echo "Warning: Failed to remove SayIP mapping for previous node $old_node"
+        return 0
+    }
 }
 
 configure_rpt_for_sayip() {
@@ -172,15 +199,21 @@ if [ "$1" = "configure" ]; then
     fi
 
     if [ -n "$node_number" ]; then
+        previous_node=""
         if [ ! -f /etc/asterisk/custom/rpt/sayip.conf ]; then
-            install_sayip_conf "$node_number" force
+            install_sayip_conf "$node_number" force >/dev/null || true
             echo "Configuration file created at /etc/asterisk/custom/rpt/sayip.conf"
         else
-            install_sayip_conf "$node_number"
+            # Capture prior node (if any) before rewrite; ignore skip (exit 1).
+            # Status messages go to stderr; previous node (if any) is on stdout.
+            previous_node="$(install_sayip_conf "$node_number")" || previous_node=""
+        fi
+        if [ -n "$previous_node" ] && [ "$previous_node" != "$node_number" ]; then
+            unwire_rpt_for_sayip "$previous_node"
         fi
         configure_rpt_for_sayip "$node_number"
     elif [ ! -f /etc/asterisk/custom/rpt/sayip.conf ]; then
-        install_sayip_conf "" force
+        install_sayip_conf "" force >/dev/null || true
         echo "Configuration file created at /etc/asterisk/custom/rpt/sayip.conf (set node number and reinstall)"
     else
         echo "Leaving existing /etc/asterisk/custom/rpt/sayip.conf unchanged (no node number available)."
