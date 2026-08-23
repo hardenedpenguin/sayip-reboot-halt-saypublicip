@@ -33,6 +33,12 @@ class SayIPBusyTest < Minitest::Test
     assert @utils.send(:stats_busy?, output)
   end
 
+  def test_stats_not_busy_when_identifier_queued_for_cleanup
+    # ASL3 idle nodes often sit in QUEUED FOR CLEANUP; must not block *A1/*A3.
+    output = "Identifier state.................................: QUEUED FOR CLEANUP\n"
+    refute @utils.send(:stats_busy?, output)
+  end
+
   def test_stats_not_busy_when_identifier_clean
     output = "Identifier state.................................: CLEAN\n"
     refute @utils.send(:stats_busy?, output)

@@ -1,9 +1,15 @@
+sayip-node-utils (1.0.14-1) unstable; urgency=medium
+
+  * Fix *A1/*A3 still blocked when Identifier state is "QUEUED FOR CLEANUP"
+    (normal ASL3 idle). Only treat "QUEUED IN TAIL" as an ID busy state.
+
+ -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 22 Aug 2026 22:30:00 -0500
+
 sayip-node-utils (1.0.13-1) unstable; urgency=medium
 
   * Fix *A1/*A3 never announcing on linked nodes: busy-check no longer
     treats RPT_TXKEYED/ETXKEYED as busy (hangtime and remote link traffic
-    kept TX keyed and exhausted the wait). Wait only for local RX and
-    identifier/telemetry state.
+    kept TX keyed and exhausted the wait). Wait only for local RX keyed.
 
  -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 22 Aug 2026 22:20:00 -0500
 

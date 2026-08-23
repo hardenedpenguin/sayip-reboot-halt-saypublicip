@@ -350,7 +350,9 @@ module SayIP
       return false if output.empty?
 
       return true if output.match?(/Signal on input\.+: YES/)
-      return true if output.match?(/Identifier state\.+: (?!CLEAN\b)/)
+      # Only "QUEUED IN TAIL" means an ID will transmit shortly.
+      # "QUEUED FOR CLEANUP" is a normal idle-ish state on ASL3 and must not block.
+      return true if output.match?(/Identifier state\.+: QUEUED IN TAIL/)
 
       false
     end

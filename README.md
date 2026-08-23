@@ -116,7 +116,7 @@ Copy only the variables you want to add or change; leave your existing values in
 | `BUSY_WAIT_MAX` | Seconds to wait for idle channel before skipping (`0` = skip immediately if busy) |
 | `BUSY_POLL_INTERVAL` | Seconds between busy checks while waiting |
 
-Before announcing local or public IP, the script checks `rpt xnode` and `rpt stats` for **local RX** activity and queued ID/telemetry. Transmitter keyed alone (hangtime or audio from a linked node) is not treated as busy, so `*A1`/`*A3` still work on connected nodes. If the receiver is busy, it waits up to `BUSY_WAIT_MAX` seconds (default 120), then skips the announcement if still busy. Set `BUSY_CHECK=no` to restore always-announce behavior.
+Before announcing local or public IP, the script checks `rpt xnode` and `rpt stats` for **local RX** activity and an ID **queued in tail**. Transmitter keyed alone (hangtime or linked audio) and Identifier `QUEUED FOR CLEANUP` (normal ASL3 idle) are not treated as busy, so `*A1`/`*A3` work on connected nodes. If the receiver is busy or an ID is queued in the tail, it waits up to `BUSY_WAIT_MAX` seconds (default 120), then skips if still busy. Set `BUSY_CHECK=no` to restore always-announce behavior.
 
 `LOCAL_IP_MODE=default_route` follows the kernel default route. If your default route is `wlan0` but you reach the node over a VPN such as `wrinkles`, set either:
 
