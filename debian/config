@@ -20,6 +20,23 @@ elif [ -f /etc/asterisk/custom/rpt/sayip.conf ]; then
         | sed -n 's/.*sayip-node-utils [lphr] \([0-9][0-9]*\).*/\1/p')"
 fi
 
+if ! is_valid_node_number "$node" && [ -f /etc/asterisk/rpt.conf ]; then
+    node="$(grep -E '^\[functions-[0-9]+\]' /etc/asterisk/rpt.conf 2>/dev/null \
+        | grep 'functions-sayip' \
+        | head -1 \
+        | sed -n 's/^\[functions-\([0-9][0-9]*\)\].*/\1/p')"
+    if ! is_valid_node_number "$node"; then
+        node="$(grep -E '^\[[0-9]+\]\(node-main' /etc/asterisk/rpt.conf 2>/dev/null \
+            | head -1 \
+            | sed -n 's/^\[\([0-9][0-9]*\)\].*/\1/p')"
+    fi
+fi
+
+if ! is_valid_node_number "$node" && [ -f /etc/internet-monitor.conf ]; then
+    node="$(grep -E '^NODE_NUMBER=' /etc/internet-monitor.conf 2>/dev/null \
+        | head -1 | cut -d= -f2- | tr -d '[:space:]')"
+fi
+
 if is_valid_node_number "$node"; then
     db_set sayip-node-utils/node-number "$node"
 else

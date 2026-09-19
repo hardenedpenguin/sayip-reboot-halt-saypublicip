@@ -1,3 +1,13 @@
+sayip-node-utils (1.0.15-1) unstable; urgency=medium
+
+  * On clean/noninteractive install, recover node number from rpt.conf
+    (functions-sayip / node-main stanza) or internet-monitor.conf when
+    NODE_NUMBER/debconf are unset, so the boot systemd service is created.
+  * Replace leftover $NODE placeholder sayip.conf when a node number becomes
+    known on reinstall.
+
+ -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 19 Sep 2026 16:10:00 -0500
+
 sayip-node-utils (1.0.14-1) unstable; urgency=medium
 
   * Fix *A1/*A3 still blocked when Identifier state is "QUEUED FOR CLEANUP"

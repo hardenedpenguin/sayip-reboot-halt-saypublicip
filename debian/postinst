@@ -35,6 +35,49 @@ extract_node_from_sayip_conf() {
     return 1
 }
 
+# Prefer a functions-NODE stanza that already inherits functions-sayip, else the
+# first ASL3 [NODE](node-main...) stanza in rpt.conf.
+extract_node_from_rpt_conf() {
+    rpt="/etc/asterisk/rpt.conf"
+    node=""
+
+    [ -f "$rpt" ] || return 1
+
+    node="$(grep -E '^\[functions-[0-9]+\]' "$rpt" 2>/dev/null \
+        | grep 'functions-sayip' \
+        | head -1 \
+        | sed -n 's/^\[functions-\([0-9][0-9]*\)\].*/\1/p')"
+
+    if ! is_valid_node_number "$node"; then
+        node="$(grep -E '^\[[0-9]+\]\(node-main' "$rpt" 2>/dev/null \
+            | head -1 \
+            | sed -n 's/^\[\([0-9][0-9]*\)\].*/\1/p')"
+    fi
+
+    if is_valid_node_number "$node"; then
+        echo "$node"
+        return 0
+    fi
+
+    return 1
+}
+
+extract_node_from_internet_monitor() {
+    conf="/etc/internet-monitor.conf"
+    node=""
+
+    [ -f "$conf" ] || return 1
+
+    node="$(grep -E '^NODE_NUMBER=' "$conf" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '[:space:]')"
+
+    if is_valid_node_number "$node"; then
+        echo "$node"
+        return 0
+    fi
+
+    return 1
+}
+
 remember_node_number() {
     node_number="$1"
 
@@ -60,6 +103,16 @@ get_node_number() {
     fi
 
     if node="$(extract_node_from_sayip_conf 2>/dev/null)" && is_valid_node_number "$node"; then
+        echo "$node"
+        return 0
+    fi
+
+    if node="$(extract_node_from_rpt_conf 2>/dev/null)" && is_valid_node_number "$node"; then
+        echo "$node"
+        return 0
+    fi
+
+    if node="$(extract_node_from_internet_monitor 2>/dev/null)" && is_valid_node_number "$node"; then
         echo "$node"
         return 0
     fi
@@ -108,12 +161,19 @@ install_sayip_conf() {
             echo "Configuration file $target already exists; leaving unchanged." >&2
             return 1
         fi
-        # Unrecognized/empty node in existing file: do not clobber unless forced.
+        # Unrecognized node: rewrite only if this is still the unconfigured
+        # $NODE placeholder from a prior install without a node number.
         if [ -z "$existing" ]; then
-            echo "Configuration file $target exists but node number is unrecognized; leaving unchanged." >&2
-            return 1
+            # Intentional literal $NODE placeholder match (not a shell variable).
+            # shellcheck disable=SC2016
+            if grep -qE 'sayip-node-utils [lphr] \$NODE' "$target" 2>/dev/null; then
+                echo "Replacing unconfigured placeholder in $target with node $node_number." >&2
+            else
+                echo "Configuration file $target exists but node number is unrecognized; leaving unchanged." >&2
+                return 1
+            fi
         fi
-        if [ "$existing" != "$node_number" ]; then
+        if [ -n "$existing" ] && [ "$existing" != "$node_number" ]; then
             echo "Updating $target for node change ($existing -> $node_number)." >&2
             previous="$existing"
         fi

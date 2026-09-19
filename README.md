@@ -45,7 +45,7 @@ This will:
 - Update `/etc/asterisk/rpt.conf` so `functions`, `phone_functions`, and `link_functions` use your node's SayIP function table (needed for IAX/phone DTMF)
 - Enable a systemd service (`allstar-sayip.service`) that announces the local IP on boot
 
-The node number can be supplied at install time via the `NODE_NUMBER` environment variable, debconf, or an interactive prompt.
+The node number can be supplied at install time via the `NODE_NUMBER` environment variable, debconf, or an interactive prompt. On noninteractive installs, the package also tries `/etc/asterisk/rpt.conf` and `/etc/internet-monitor.conf` when present.
 
 ### Post-Installation
 
