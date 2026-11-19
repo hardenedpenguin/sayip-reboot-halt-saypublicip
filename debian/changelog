@@ -1,3 +1,11 @@
+sayip-node-utils (1.0.17-1) unstable; urgency=medium
+
+  * Fix postinst/config node extraction from sayip.conf: use sed -E so
+    whitespace '+' is not treated as a literal, which falsely marked valid
+    conf files unrecognized and skipped rpt.conf wiring on upgrade.
+
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Wed, 18 Nov 2026 21:10:00 -0600
+
 sayip-node-utils (1.0.16-1) unstable; urgency=medium
 
   * Harden postinst migration: stage sayip.conf writes, persist failed

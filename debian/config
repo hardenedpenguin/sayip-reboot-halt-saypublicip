@@ -26,9 +26,11 @@ node=""
 if is_valid_node_number "$NODE_NUMBER"; then
     node="$NODE_NUMBER"
 elif [ -f /etc/asterisk/custom/rpt/sayip.conf ]; then
+    # Use sed -E so '+' matches grep -E; plain sed BRE treats bare '+' as literal
+    # and falsely reports an existing sayip.conf as unrecognized.
     node="$(grep -E 'sayip-node-utils[[:space:]]+[lphr][[:space:]]+' /etc/asterisk/custom/rpt/sayip.conf 2>/dev/null \
         | head -1 \
-        | sed -n 's/.*sayip-node-utils[[:space:]]+[lphr][[:space:]]\+\([0-9][0-9]*\).*/\1/p')"
+        | sed -nE 's/.*sayip-node-utils[[:space:]]+[lphr][[:space:]]+([0-9][0-9]*).*/\1/p')"
 fi
 
 if ! is_valid_node_number "$node" && [ -f /etc/asterisk/rpt.conf ]; then
