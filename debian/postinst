@@ -14,8 +14,21 @@ if [ -f /usr/share/debconf/confmodule ]; then
     . /usr/share/debconf/confmodule
 fi
 
+PENDING_UNWIRE="/var/lib/sayip-node-utils/pending-unwire"
+
 is_valid_node_number() {
     echo "$1" | grep -qE '^[0-9]{1,10}$'
+}
+
+# Strip a trailing Asterisk ; comment (and whitespace) from a config line.
+strip_asl_comment() {
+    echo "$1" | sed 's/[[:space:]]*;.*//'
+}
+
+# True if inheritance list contains the exact token functions-sayip.
+has_active_functions_sayip() {
+    line="$(strip_asl_comment "$1")"
+    echo "$line" | grep -qE '\(([^)]*,)?functions-sayip([,)]|$)'
 }
 
 extract_node_from_sayip_conf() {
@@ -24,8 +37,8 @@ extract_node_from_sayip_conf() {
 
     [ -f "$conf" ] || return 1
 
-    node="$(grep -E 'sayip-node-utils [lphr] ' "$conf" 2>/dev/null | head -1 \
-        | sed -n 's/.*sayip-node-utils [lphr] \([0-9][0-9]*\).*/\1/p')"
+    node="$(grep -E 'sayip-node-utils[[:space:]]+[lphr][[:space:]]+' "$conf" 2>/dev/null | head -1 \
+        | sed -n 's/.*sayip-node-utils[[:space:]]+[lphr][[:space:]]\+\([0-9][0-9]*\).*/\1/p')"
 
     if is_valid_node_number "$node"; then
         echo "$node"
@@ -43,10 +56,16 @@ extract_node_from_rpt_conf() {
 
     [ -f "$rpt" ] || return 1
 
-    node="$(grep -E '^\[functions-[0-9]+\]' "$rpt" 2>/dev/null \
-        | grep 'functions-sayip' \
-        | head -1 \
-        | sed -n 's/^\[functions-\([0-9][0-9]*\)\].*/\1/p')"
+    while IFS= read -r line; do
+        case "$line" in
+            \[functions-[0-9]*)
+                if has_active_functions_sayip "$line"; then
+                    node="$(echo "$line" | sed -n 's/^\[functions-\([0-9][0-9]*\)\].*/\1/p')"
+                    break
+                fi
+                ;;
+        esac
+    done < "$rpt"
 
     if ! is_valid_node_number "$node"; then
         node="$(grep -E '^\[[0-9]+\]\(node-main' "$rpt" 2>/dev/null \
@@ -140,14 +159,28 @@ sayip_conf_node() {
     extract_node_from_sayip_conf 2>/dev/null || true
 }
 
-# Prints previous node on stdout when sayip.conf will be rewritten for a
-# node-number change; otherwise prints nothing. Exit 0 means proceed to write.
+remember_pending_unwire() {
+    old_node="$1"
+    [ -n "$old_node" ] || return 0
+    mkdir -p "$(dirname "$PENDING_UNWIRE")"
+    echo "$old_node" > "$PENDING_UNWIRE"
+}
+
+clear_pending_unwire() {
+    rm -f "$PENDING_UNWIRE"
+}
+
+# Exit codes:
+#   0 - wrote sayip.conf (stdout may contain previous node)
+#   1 - skipped; existing file already matches node_number (safe to wire)
+#   2 - skipped; existing file unrecognized/incompatible (do not wire)
 install_sayip_conf() {
     node_number="$1"
     force="${2:-}"
     example="/usr/share/doc/sayip-node-utils/sayip.conf.example"
     target="/etc/asterisk/custom/rpt/sayip.conf"
     previous=""
+    tmp=""
 
     mkdir -p /etc/asterisk/custom/rpt
 
@@ -159,18 +192,18 @@ install_sayip_conf() {
         fi
         if [ -z "$node_number" ]; then
             echo "Configuration file $target already exists; leaving unchanged." >&2
-            return 1
+            return 2
         fi
         # Unrecognized node: rewrite only if this is still the unconfigured
         # $NODE placeholder from a prior install without a node number.
         if [ -z "$existing" ]; then
             # Intentional literal $NODE placeholder match (not a shell variable).
             # shellcheck disable=SC2016
-            if grep -qE 'sayip-node-utils [lphr] \$NODE' "$target" 2>/dev/null; then
+            if grep -qE 'sayip-node-utils[[:space:]]+[lphr][[:space:]]+\$NODE' "$target" 2>/dev/null; then
                 echo "Replacing unconfigured placeholder in $target with node $node_number." >&2
             else
                 echo "Configuration file $target exists but node number is unrecognized; leaving unchanged." >&2
-                return 1
+                return 2
             fi
         fi
         if [ -n "$existing" ] && [ "$existing" != "$node_number" ]; then
@@ -179,14 +212,29 @@ install_sayip_conf() {
         fi
     fi
 
+    tmp="$(mktemp "${target}.XXXXXX")"
+
     if [ -n "$node_number" ]; then
-        sed "s/\$NODE/$node_number/g" "$example" > "$target"
+        sed "s/\$NODE/$node_number/g" "$example" > "$tmp" || {
+            rm -f "$tmp"
+            return 2
+        }
     else
-        cp "$example" "$target"
+        cp "$example" "$tmp" || {
+            rm -f "$tmp"
+            return 2
+        }
     fi
 
-    chmod 0644 "$target"
-    chown asterisk:asterisk "$target" 2>/dev/null || true
+    chmod 0644 "$tmp" || {
+        rm -f "$tmp"
+        return 2
+    }
+    chown asterisk:asterisk "$tmp" 2>/dev/null || true
+    mv "$tmp" "$target" || {
+        rm -f "$tmp"
+        return 2
+    }
 
     if [ -n "$previous" ]; then
         echo "$previous"
@@ -199,12 +247,14 @@ unwire_rpt_for_sayip() {
     helper="/usr/lib/sayip-node-utils/configure-rpt-sayip.sh"
 
     [ -n "$old_node" ] || return 0
-    [ -x "$helper" ] || return 0
+    [ -x "$helper" ] || return 1
 
-    "$helper" --unwire "$old_node" || {
-        echo "Warning: Failed to remove SayIP mapping for previous node $old_node"
+    if "$helper" --unwire "$old_node"; then
         return 0
-    }
+    fi
+
+    echo "Warning: Failed to remove SayIP mapping for previous node $old_node"
+    return 1
 }
 
 configure_rpt_for_sayip() {
@@ -218,6 +268,23 @@ configure_rpt_for_sayip() {
         echo "Warning: Failed to update /etc/asterisk/rpt.conf for node $node_number"
         return 0
     }
+}
+
+retry_pending_unwire() {
+    [ -f "$PENDING_UNWIRE" ] || return 0
+
+    old_node="$(tr -d '[:space:]' < "$PENDING_UNWIRE")"
+    if ! is_valid_node_number "$old_node"; then
+        clear_pending_unwire
+        return 0
+    fi
+
+    echo "Retrying pending SayIP unwire for previous node $old_node..."
+    if unwire_rpt_for_sayip "$old_node"; then
+        clear_pending_unwire
+    else
+        echo "Warning: Pending unwire for node $old_node remains at $PENDING_UNWIRE"
+    fi
 }
 
 install_systemd_service() {
@@ -243,6 +310,8 @@ if [ "$1" = "configure" ]; then
         echo "Use NODE_NUMBER=12345 apt install/reinstall sayip-node-utils or answer debconf."
     fi
 
+    retry_pending_unwire
+
     if [ ! -f /etc/default/sayip ] && [ -f /usr/share/doc/sayip-node-utils/sayip.example ]; then
         cp /usr/share/doc/sayip-node-utils/sayip.example /etc/default/sayip
         chmod 0644 /etc/default/sayip
@@ -260,18 +329,31 @@ if [ "$1" = "configure" ]; then
 
     if [ -n "$node_number" ]; then
         previous_node=""
+        conf_status=0
         if [ ! -f /etc/asterisk/custom/rpt/sayip.conf ]; then
-            install_sayip_conf "$node_number" force >/dev/null || true
-            echo "Configuration file created at /etc/asterisk/custom/rpt/sayip.conf"
+            install_sayip_conf "$node_number" force >/dev/null || conf_status=$?
+            if [ "$conf_status" -eq 0 ]; then
+                echo "Configuration file created at /etc/asterisk/custom/rpt/sayip.conf"
+            fi
         else
-            # Capture prior node (if any) before rewrite; ignore skip (exit 1).
             # Status messages go to stderr; previous node (if any) is on stdout.
-            previous_node="$(install_sayip_conf "$node_number")" || previous_node=""
+            # Exit 1 = already matches; exit 2 = unrecognized (do not wire).
+            conf_status=0
+            previous_node="$(install_sayip_conf "$node_number")" || conf_status=$?
         fi
-        if [ -n "$previous_node" ] && [ "$previous_node" != "$node_number" ]; then
-            unwire_rpt_for_sayip "$previous_node"
+
+        if [ "$conf_status" -eq 2 ]; then
+            echo "Skipping rpt.conf wiring; $node_number does not match preserved sayip.conf commands."
+        else
+            if [ -n "$previous_node" ] && [ "$previous_node" != "$node_number" ]; then
+                if ! unwire_rpt_for_sayip "$previous_node"; then
+                    remember_pending_unwire "$previous_node"
+                else
+                    clear_pending_unwire
+                fi
+            fi
+            configure_rpt_for_sayip "$node_number"
         fi
-        configure_rpt_for_sayip "$node_number"
     elif [ ! -f /etc/asterisk/custom/rpt/sayip.conf ]; then
         install_sayip_conf "" force >/dev/null || true
         echo "Configuration file created at /etc/asterisk/custom/rpt/sayip.conf (set node number and reinstall)"

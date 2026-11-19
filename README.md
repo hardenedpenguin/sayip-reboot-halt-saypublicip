@@ -142,18 +142,24 @@ Manual use as root still works directly; non-root manual use requires `sudo`.
 
 ### Changing the Node Number
 
-If you need to change the node number after installation:
+If you need to change the node number after installation, the easiest path is a reinstall (updates `sayip.conf`, the systemd unit, and `rpt.conf` wiring):
+
+```bash
+sudo NODE_NUMBER=NEW_NODE_NUMBER apt install --reinstall sayip-node-utils
+sudo asterisk -rx "module reload app_rpt.so"
+```
+
+To change it manually:
 
 1. Edit `/etc/asterisk/custom/rpt/sayip.conf` and replace the node number in the DTMF commands
 2. Edit `/etc/systemd/system/allstar-sayip.service` and update the node number in the `ExecStart` line
 3. Reload systemd: `sudo systemctl daemon-reload`
-4. Reload app_rpt: `sudo asterisk -rx "module reload app_rpt.so"` or `sudo systemctl restart asterisk`
-
-Alternatively, reinstall with a node number to update both files automatically:
-
-```bash
-sudo NODE_NUMBER=NEW_NODE_NUMBER apt install --reinstall sayip-node-utils
-```
+4. Update `rpt.conf` wiring (unwire the old node, then configure the new one):
+   ```bash
+   sudo /usr/lib/sayip-node-utils/configure-rpt-sayip.sh --unwire OLD_NODE_NUMBER
+   sudo /usr/lib/sayip-node-utils/configure-rpt-sayip.sh NEW_NODE_NUMBER
+   ```
+5. Reload app_rpt: `sudo asterisk -rx "module reload app_rpt.so"` or `sudo systemctl restart asterisk`
 
 ---
 

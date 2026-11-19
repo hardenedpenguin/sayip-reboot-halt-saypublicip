@@ -1,3 +1,19 @@
+sayip-node-utils (1.0.16-1) unstable; urgency=medium
+
+  * Harden postinst migration: stage sayip.conf writes, persist failed
+    old-node unwire for retry, and skip rpt wiring when preserved
+    sayip.conf does not target the selected node.
+  * Harden configure-rpt-sayip.sh: exact functions-sayip token unwire,
+    trailing-comment inheritance updates, include-before-table ordering,
+    close node stanzas before next headers, avoid duplicate function
+    tables, and preserve the nodes prior functions parent.
+  * Ignore semicolon comments when detecting active functions-sayip
+    inheritance for node-number recovery.
+  * Document manual node-change unwire/configure steps; clarify
+    QUEUED IN TAIL as the busy identifier state.
+
+ -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Wed, 18 Nov 2026 19:15:00 -0600
+
 sayip-node-utils (1.0.15-1) unstable; urgency=medium
 
   * On clean/noninteractive install, recover node number from rpt.conf

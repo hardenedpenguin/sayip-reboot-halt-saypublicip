@@ -35,7 +35,7 @@ PREFER_INTERFACES=
 USER_AGENT=sayip-node-utils/1.0
 
 # Skip IP announcements while the receiver is busy (local RF COS/RX keyed)
-# or an ID/telemetry is queued. Uses rpt xnode/stats before localplay.
+# or the identifier state is QUEUED IN TAIL. Uses rpt xnode/stats before localplay.
 # TX keyed alone (hangtime or linked remote traffic) is NOT treated as busy.
 BUSY_CHECK=yes
 

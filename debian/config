@@ -10,21 +10,39 @@ is_valid_node_number() {
     echo "$1" | grep -qE '^[0-9]{1,10}$'
 }
 
+# Strip a trailing Asterisk ; comment (and whitespace) from a config line.
+strip_asl_comment() {
+    echo "$1" | sed 's/[[:space:]]*;.*//'
+}
+
+# True if inheritance list contains the exact token functions-sayip.
+has_active_functions_sayip() {
+    line="$(strip_asl_comment "$1")"
+    echo "$line" | grep -qE '\(([^)]*,)?functions-sayip([,)]|$)'
+}
+
 node=""
 
 if is_valid_node_number "$NODE_NUMBER"; then
     node="$NODE_NUMBER"
 elif [ -f /etc/asterisk/custom/rpt/sayip.conf ]; then
-    node="$(grep -E 'sayip-node-utils [lphr] ' /etc/asterisk/custom/rpt/sayip.conf 2>/dev/null \
+    node="$(grep -E 'sayip-node-utils[[:space:]]+[lphr][[:space:]]+' /etc/asterisk/custom/rpt/sayip.conf 2>/dev/null \
         | head -1 \
-        | sed -n 's/.*sayip-node-utils [lphr] \([0-9][0-9]*\).*/\1/p')"
+        | sed -n 's/.*sayip-node-utils[[:space:]]+[lphr][[:space:]]\+\([0-9][0-9]*\).*/\1/p')"
 fi
 
 if ! is_valid_node_number "$node" && [ -f /etc/asterisk/rpt.conf ]; then
-    node="$(grep -E '^\[functions-[0-9]+\]' /etc/asterisk/rpt.conf 2>/dev/null \
-        | grep 'functions-sayip' \
-        | head -1 \
-        | sed -n 's/^\[functions-\([0-9][0-9]*\)\].*/\1/p')"
+    while IFS= read -r line; do
+        case "$line" in
+            \[functions-[0-9]*)
+                if has_active_functions_sayip "$line"; then
+                    node="$(echo "$line" | sed -n 's/^\[functions-\([0-9][0-9]*\)\].*/\1/p')"
+                    break
+                fi
+                ;;
+        esac
+    done < /etc/asterisk/rpt.conf
+
     if ! is_valid_node_number "$node"; then
         node="$(grep -E '^\[[0-9]+\]\(node-main' /etc/asterisk/rpt.conf 2>/dev/null \
             | head -1 \
