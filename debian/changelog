@@ -12,7 +12,7 @@ sayip-node-utils (1.0.16-1) unstable; urgency=medium
   * Document manual node-change unwire/configure steps; clarify
     QUEUED IN TAIL as the busy identifier state.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Wed, 18 Nov 2026 19:15:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Wed, 18 Nov 2026 19:15:00 -0600
 
 sayip-node-utils (1.0.15-1) unstable; urgency=medium
 
@@ -22,14 +22,14 @@ sayip-node-utils (1.0.15-1) unstable; urgency=medium
   * Replace leftover $NODE placeholder sayip.conf when a node number becomes
     known on reinstall.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 19 Sep 2026 16:10:00 -0500
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sat, 19 Sep 2026 16:10:00 -0500
 
 sayip-node-utils (1.0.14-1) unstable; urgency=medium
 
   * Fix *A1/*A3 still blocked when Identifier state is "QUEUED FOR CLEANUP"
     (normal ASL3 idle). Only treat "QUEUED IN TAIL" as an ID busy state.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 22 Aug 2026 22:30:00 -0500
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sat, 22 Aug 2026 22:30:00 -0500
 
 sayip-node-utils (1.0.13-1) unstable; urgency=medium
 
@@ -37,14 +37,14 @@ sayip-node-utils (1.0.13-1) unstable; urgency=medium
     treats RPT_TXKEYED/ETXKEYED as busy (hangtime and remote link traffic
     kept TX keyed and exhausted the wait). Wait only for local RX keyed.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 22 Aug 2026 22:20:00 -0500
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sat, 22 Aug 2026 22:20:00 -0500
 
 sayip-node-utils (1.0.12-2) unstable; urgency=medium
 
   * Document the correct ASL3 reload command: module reload app_rpt.so
     (rpt reload is not a valid Asterisk CLI command).
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 22 Aug 2026 19:10:00 -0500
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sat, 22 Aug 2026 19:10:00 -0500
 
 sayip-node-utils (1.0.12-1) unstable; urgency=medium
 
@@ -58,7 +58,7 @@ sayip-node-utils (1.0.12-1) unstable; urgency=medium
   * Stage rpt.conf rewrites and apply mode/ownership to the staged file
     before replacing, so metadata failures leave the original untouched.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sat, 22 Aug 2026 19:05:00 -0500
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sat, 22 Aug 2026 19:05:00 -0500
 
 sayip-node-utils (1.0.11-1) unstable; urgency=medium
 
@@ -67,7 +67,7 @@ sayip-node-utils (1.0.11-1) unstable; urgency=medium
     "configure" argument, silently skipping all setup. Source it once at
     top level instead.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sun, 19 Jul 2026 13:45:00 -0500
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sun, 19 Jul 2026 13:45:00 -0500
 
 sayip-node-utils (1.0.10-1) unstable; urgency=medium
 
@@ -75,47 +75,47 @@ sayip-node-utils (1.0.10-1) unstable; urgency=medium
   * Clamp BUSY_POLL_INTERVAL to a 0.1s minimum to avoid busy-wait loops.
   * Document running all test files; remove obsolete release README bump.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Mon, 01 Jun 2026 12:00:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Mon, 01 Jun 2026 12:00:00 -0600
 
 sayip-node-utils (1.0.9-2) unstable; urgency=medium
 
   * Split busy-channel tests to satisfy RuboCop class length limits.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sun, 31 May 2026 23:00:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sun, 31 May 2026 23:00:00 -0600
 
 sayip-node-utils (1.0.9-1) unstable; urgency=medium
 
   * Defer or skip IP announcements when the repeater channel is busy (RF,
     ID, or telemetry) using rpt xnode/stats before localplay.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sun, 31 May 2026 22:00:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sun, 31 May 2026 22:00:00 -0600
 
 sayip-node-utils (1.0.8-2) unstable; urgency=medium
 
   * Fix ShellCheck SC2153 for optional NODE_NUMBER install environment variable.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sun, 31 May 2026 21:00:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sun, 31 May 2026 21:00:00 -0600
 
 sayip-node-utils (1.0.8-1) unstable; urgency=medium
 
   * Fix node number collection during apt install/reinstall: honor NODE_NUMBER,
     debconf, and existing sayip.conf; send prompts to stderr not stdout.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sun, 31 May 2026 20:00:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sun, 31 May 2026 20:00:00 -0600
 
 sayip-node-utils (1.0.7-1) unstable; urgency=medium
 
   * Add LOCAL_IP_INTERFACE and PREFER_INTERFACES for VPN/local IP selection.
   * Document that default_route follows the kernel default route (often wlan0).
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sun, 31 May 2026 16:00:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sun, 31 May 2026 16:00:00 -0600
 
 sayip-node-utils (1.0.6-1) unstable; urgency=medium
 
   * Announce only the default-route interface IPv4 for local IP by default.
   * Reject loopback addresses and stop skipping VPN interface prefixes.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sun, 31 May 2026 14:00:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sun, 31 May 2026 14:00:00 -0600
 
 sayip-node-utils (1.0.5-1) unstable; urgency=medium
 
@@ -128,21 +128,21 @@ sayip-node-utils (1.0.5-1) unstable; urgency=medium
   * Improve postinst/prerm/postrm lifecycle (reinstall updates, purge cleanup).
   * Add unit tests, RuboCop, and ShellCheck to CI.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Sun, 31 May 2026 12:00:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Sun, 31 May 2026 12:00:00 -0600
 
 sayip-node-utils (1.0.4-1) unstable; urgency=medium
 
   * Fix SayIP digit playback by keeping generated audio file available long
     enough for async Asterisk localplay.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Fri, 01 May 2026 09:26:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Fri, 01 May 2026 09:26:00 -0600
 
 sayip-node-utils (1.0.3-1) unstable; urgency=medium
 
   * CI fixes: install build-essential, drop dh-systemd, and force JS actions
     to Node 24 for upcoming runner changes.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Fri, 01 May 2026 09:06:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Fri, 01 May 2026 09:06:00 -0600
 
 sayip-node-utils (1.0.1-1) unstable; urgency=medium
 
@@ -150,7 +150,7 @@ sayip-node-utils (1.0.1-1) unstable; urgency=medium
   * Wait for network-online.target before boot-time IP announcement.
   * Add GitHub Actions to build .deb packages and publish releases.
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Fri, 01 May 2026 08:45:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Fri, 01 May 2026 08:45:00 -0600
 
 sayip-node-utils (1.0.0-1) unstable; urgency=medium
 
@@ -159,5 +159,5 @@ sayip-node-utils (1.0.0-1) unstable; urgency=medium
   * Audio files organized in sounds/ directory
   * ASL3 configuration support
 
- -- Jory A. Pratt, W5GLE <geekypenguin@gmail.com>  Fri, 03 Jan 2025 10:00:00 -0600
+ -- "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>  Fri, 03 Jan 2025 10:00:00 -0600
 

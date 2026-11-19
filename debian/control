@@ -1,7 +1,7 @@
 Source: sayip-node-utils
 Section: hamradio
 Priority: optional
-Maintainer: Jory A. Pratt, W5GLE <geekypenguin@gmail.com>
+Maintainer: "Jory A. Pratt, W5GLE" <geekypenguin@gmail.com>
 Build-Depends: debhelper-compat (= 13), ruby
 Standards-Version: 4.6.2
 Homepage: https://github.com/hardenedpenguin/sayip-reboot-halt-saypublicip
